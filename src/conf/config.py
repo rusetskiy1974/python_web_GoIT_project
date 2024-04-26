@@ -6,10 +6,9 @@ class Settings(BaseSettings):
     """
     Settings for the application.
     """
-    sqlalchemy_database_url: str = "postgresql+asyncpg://postgres:567234@localhost:5432/project_web"
     db_url: str
     db_local_url: str
-    db_admin: str
+    db_user: str
     db_password: str
     db_port: str
     db_name: str
@@ -32,3 +31,5 @@ class Settings(BaseSettings):
 
     model_config = ConfigDict(extra='ignore', env_file=".env", env_file_encoding="utf-8")
 
+
+settings = Settings()
