@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "python-web-goit-project"
+version = "0.1.0"
+description = ""
+authors = ["SergRusetskiy1974 <113336060+rusetskiy1974@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
