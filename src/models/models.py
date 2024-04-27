@@ -1,9 +1,8 @@
 import enum
 import uuid
-from datetime import datetime
 
-from sqlalchemy import String, Integer, ForeignKey, DateTime, func, Column, Boolean, Enum, CheckConstraint, UUID, Text
-from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
+from sqlalchemy import String, Integer, ForeignKey, DateTime, func, Column, Boolean, Enum, UUID, Text
+from sqlalchemy.orm import DeclarativeBase, relationship
 
 
 class Base(DeclarativeBase):
@@ -47,7 +46,7 @@ class Image(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     size = Column(Integer, nullable=False, index=True)
-    path = Column(String(length=255),  index=True)
+    path = Column(String(length=255), index=True)
     created_at = Column(DateTime, default=func.now())
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     count_tags = Column(Integer, default=0, nullable=False)
@@ -59,7 +58,7 @@ class Image(Base):
 class Tag(Base):
     __tablename__ = 'tags'
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     images = relationship("Image", secondary="image_to_tag", back_populates="tags", lazy="joined")
 
