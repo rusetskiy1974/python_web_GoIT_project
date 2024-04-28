@@ -5,11 +5,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.db import get_db
-from src.routes import auth
+from src.routes import auth, users
 
 app = FastAPI(title="PhotoShare")
 
 app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
 
 
 @app.get("/")

@@ -13,10 +13,8 @@ class UserDbSchema(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
-    password: str
     role: str
     avatar: Optional[str] = None
-    refresh_token: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     confirmed: bool
@@ -72,3 +70,11 @@ class RequestEmail(BaseModel):
 
 class ConfirmationResponse(BaseModel):
     message: str
+
+
+class LogoutResponseSchema(BaseModel):
+    message: str
+
+
+class RequestNewPassword(BaseModel):
+    new_password: str = Field(min_length=8, max_length=12)

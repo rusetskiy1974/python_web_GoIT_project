@@ -5,7 +5,7 @@ from libgravatar import Gravatar
 
 from src.database.db import get_db
 from src.models.models import User, Role
-from src.schemas.users import UserCreateSchema
+from src.schemas.user import UserCreateSchema
 
 
 async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)) -> User | None:
@@ -52,3 +52,18 @@ async def confirmed_email(email: str, db: AsyncSession):
     user.confirmed = True
     user.is_active = True
     await db.commit()
+
+
+async def update_avatar(email, url: str, db: AsyncSession) -> User:
+    user = await get_user_by_email(email, db)
+    user.avatar = url
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def update_password(user: User, new_password: str, db: AsyncSession) -> User:
+    user.password = new_password
+    await db.commit()
+    await db.refresh(user)
+    return user

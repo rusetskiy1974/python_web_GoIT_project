@@ -5,9 +5,10 @@ from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.db import get_db
+from src.models.models import User
 from src.repository import users as repository_users
-from src.schemas.users import UserCreateSchema, UserUpdateSchema, TokenSchema, UserResponseSchema, RequestEmail, \
-    ConfirmationResponse
+from src.schemas.user import UserCreateSchema, UserUpdateSchema, TokenSchema, UserResponseSchema, RequestEmail, \
+    ConfirmationResponse, LogoutResponseSchema
 from src.services.auth import auth_service
 from src.services.email import send_email
 from src.conf import messages
@@ -49,6 +50,14 @@ async def login(body: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
     refresh_token_ = await auth_service.create_refresh_token(data={"sub": user.email})
     await repository_users.update_token(user, refresh_token_, db)
     return {"access_token": access_token, "refresh_token": refresh_token_, "token_type": "bearer"}
+
+
+@router.post("/logout", response_model=LogoutResponseSchema)
+async def logout(user: User = Depends(auth_service.get_current_user),
+                 db: AsyncSession = Depends(get_db)) -> dict:
+    user.refresh_token = None
+    await db.commit()
+    return {"message": "Success"}
 
 
 @router.get('/refresh_token', response_model=TokenSchema)
