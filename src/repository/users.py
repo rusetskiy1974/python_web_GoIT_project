@@ -40,3 +40,15 @@ async def get_user_by_email(email: str, db: AsyncSession = Depends(get_db)) -> U
     query = select(User).filter_by(email=email)
     user = await db.execute(query)
     return user.scalar_one_or_none()
+
+
+async def update_token(user: User, token: str | None, db: AsyncSession):
+    user.refresh_token = token
+    await db.commit()
+
+
+async def confirmed_email(email: str, db: AsyncSession):
+    user = await get_user_by_email(email, db)
+    user.confirmed = True
+    user.is_active = True
+    await db.commit()
