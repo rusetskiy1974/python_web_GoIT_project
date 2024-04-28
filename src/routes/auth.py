@@ -1,6 +1,7 @@
 import secrets
-from fastapi import APIRouter, Depends, HTTPException, status, Security, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Security, Request, BackgroundTasks, Query
 from fastapi.security import OAuth2PasswordRequestForm, HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.db import get_db
@@ -17,8 +18,14 @@ get_refresh_token = HTTPBearer()
 
 
 @router.post("/signup/", response_model=UserResponseSchema, status_code=status.HTTP_201_CREATED)
-async def signup(background_tasks: BackgroundTasks, request: Request, body: UserCreateSchema = Depends(),
-                 db: AsyncSession = Depends(get_db)):
+async def signup(background_tasks: BackgroundTasks,
+                 request: Request,
+                 body: UserCreateSchema = Depends(),
+                 db: AsyncSession = Depends(get_db),
+                 confirmed_password: str = Query(min_length=8, max_length=12),
+                 ):
+    if not secrets.compare_digest(body.password, confirmed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=messages.PASSWORDS_NOT_MATCH)
     exist_user = await repository_users.get_user_by_email(email=body.email, db=db)
     if exist_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=messages.ACCOUNT_EXISTS)
@@ -81,4 +88,3 @@ async def confirmed_email(token: str, db: AsyncSession = Depends(get_db)) -> Con
         return ConfirmationResponse(message="Your email is already confirmed")
     await repository_users.confirmed_email(email, db)
     return ConfirmationResponse(message="Email confirmed")
-
