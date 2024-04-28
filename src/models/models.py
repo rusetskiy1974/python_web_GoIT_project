@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import String, Integer, ForeignKey, DateTime, func, Column, Boolean, Enum, CheckConstraint, UUID, Text
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 
 
@@ -32,6 +33,10 @@ class User(Base):
     is_active = Column(Boolean, default=False)
     images = relationship("Image", back_populates="owner")
     comments = relationship("Comment", back_populates="user")
+
+    @hybrid_property
+    def fullname(self):
+        return self.first_name + " " + self.last_name
 
 
 class ImageToTag(Base):
