@@ -55,8 +55,10 @@ async def forgot_password(background_tasks: BackgroundTasks,
 
 
 @router.post("/reset_password/{token}")
-async def reset_password(token: str, new_password: str,
+async def reset_password(token: str, request_: Request,
                          db: AsyncSession = Depends(get_db)) -> dict:
+    form_data = await request_.form()
+    new_password = form_data["new_password"]
     email = await auth_service.get_email_from_token(token)
     if not email:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
@@ -73,4 +75,5 @@ async def reset_password(token: str, new_password: str,
 @router.get("/reset_password/{token}", response_class=HTMLResponse)
 async def get_reset_password_page(token: str, request_: Request):
     return templates.TemplateResponse("reset_password.html", {"request": request_, "token": token})
+
 
