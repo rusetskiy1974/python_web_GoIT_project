@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import cloudinary
 import cloudinary.uploader
 from fastapi.templating import Jinja2Templates
+from starlette.responses import HTMLResponse
 
 from src.database.db import get_db
 from src.models.models import User
@@ -53,8 +54,8 @@ async def forgot_password(background_tasks: BackgroundTasks,
     return {"message": "Check your email for confirmation."}
 
 
-@router.get("/reset_password/{token}")
-async def reset_password(token: str,     # new_password: str = Query(min_length=8, max_length=12),
+@router.put("/reset_password/{token}")
+async def reset_password(token: str, new_password: str,
                          db: AsyncSession = Depends(get_db)) -> dict:
     email = await auth_service.get_email_from_token(token)
     if not email:
@@ -64,9 +65,12 @@ async def reset_password(token: str,     # new_password: str = Query(min_length=
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    def get_reset_password_page():
-        return templates.TemplateResponse("reset_password.html", {"request": request})
-
-    new_password = await auth_service.get_password_hash(get_reset_password_page())
+    new_password = await auth_service.get_password_hash(new_password)
     await repository_users.update_password(user, new_password, db)
     return {"message": "Password reset successfully"}
+
+
+@router.get("/reset_password/{token}", response_class=HTMLResponse)
+async def get_reset_password_page(token: str, request_: Request):
+    return templates.TemplateResponse("reset_password.html", {"request": request_, "token": token})
+
