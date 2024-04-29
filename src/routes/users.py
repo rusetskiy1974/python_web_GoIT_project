@@ -54,7 +54,7 @@ async def forgot_password(background_tasks: BackgroundTasks,
     return {"message": "Check your email for confirmation."}
 
 
-@router.put("/reset_password/{token}")
+@router.post("/reset_password/{token}")
 async def reset_password(token: str, new_password: str,
                          db: AsyncSession = Depends(get_db)) -> dict:
     email = await auth_service.get_email_from_token(token)
