@@ -1,7 +1,10 @@
+from urllib import request
+
 from fastapi import APIRouter, Depends, status, UploadFile, File, Request, BackgroundTasks, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 import cloudinary
 import cloudinary.uploader
+from fastapi.templating import Jinja2Templates
 
 from src.database.db import get_db
 from src.models.models import User
@@ -12,6 +15,7 @@ from src.schemas.user import UserDbSchema, RequestEmail, RequestNewPassword
 from src.services.email import send_email_reset_password
 
 router = APIRouter(prefix="/users", tags=["users"])
+templates = Jinja2Templates(directory="src/services/templates")
 
 
 @router.get("/me/", response_model=UserDbSchema)
@@ -49,8 +53,8 @@ async def forgot_password(background_tasks: BackgroundTasks,
     return {"message": "Check your email for confirmation."}
 
 
-@router.patch("/reset_password/{token}")
-async def reset_password(token: str, new_password: str = Query(min_length=8, max_length=12),
+@router.get("/reset_password/{token}")
+async def reset_password(token: str,     # new_password: str = Query(min_length=8, max_length=12),
                          db: AsyncSession = Depends(get_db)) -> dict:
     email = await auth_service.get_email_from_token(token)
     if not email:
@@ -60,6 +64,9 @@ async def reset_password(token: str, new_password: str = Query(min_length=8, max
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    new_password = await auth_service.get_password_hash(new_password)
+    def get_reset_password_page():
+        return templates.TemplateResponse("reset_password.html", {"request": request})
+
+    new_password = await auth_service.get_password_hash(get_reset_password_page())
     await repository_users.update_password(user, new_password, db)
     return {"message": "Password reset successfully"}
