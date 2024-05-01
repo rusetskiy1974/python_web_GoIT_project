@@ -1,139 +1,51 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+import tempfile
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status, Query
 from sqlalchemy import select
+import requests
+from PIL import Image
+from io import BytesIO
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import StreamingResponse, FileResponse
 
 from src.database.db import get_db
 from src.models.models import Image
 from src.repository import images as repository_images
 from src.repository import transform as repository_transform
-from sqlalchemy.ext.asyncio import AsyncSession
-import requests
-from starlette.responses import StreamingResponse
+from src.conf.transform import TRANSFORM_METHOD
+from src.schemas.transform import TransformedImageResponse, TransformedImageRequest
 
 router = APIRouter(prefix='/cloudinary_transform', tags=['cloudinary_transform'])
 
+transform_list = list(TRANSFORM_METHOD.keys())
 
-@router.get('/cloudinary_angle/{image_id}')
-async def get_transform_image_from_cloudinary_angle(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
+
+@router.post('/cloudinary_transform/{image_id}')
+async def get_transform_image_from_cloudinary(
+        method: str = Query(..., description=f"Allowed transform methods: {', '.join(TRANSFORM_METHOD.keys())}"),
+        image_id: int = Path(ge=1),
+        db: AsyncSession = Depends(get_db)):
     query = select(Image).filter_by(id=image_id)
     image = await repository_images.get_image(query, db)
     if image:
         response = requests.get(image.path, stream=True)
         if response.status_code == 200:
-            transformed_image = await repository_transform.transform_image(image.path, transformation_options={
-                'format': 'jpg',
-                'angle': 45,
-                'background': 'blue',
-                'width': 300,
-                'height': 300,
-                'crop': 'scale'
-            })
-            response = requests.get(transformed_image, stream=True)
-            return StreamingResponse(response.iter_content(chunk_size=1024),
-                                     media_type=response.headers['content-type'])
+            if method not in TRANSFORM_METHOD.keys():
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Method not found")
+
+            transformed_image = await repository_transform.transform_image(image.path,
+                                                                           transformation_options=TRANSFORM_METHOD[
+                                                                               method])
+            qr_code = await repository_transform.generate_qr_code(transformed_image)
+            qr_image_bytes_io = BytesIO()
+            qr_code.save(qr_image_bytes_io, format="PNG")
+            qr_image_bytes_io.seek(0)
+
+            return StreamingResponse(qr_image_bytes_io, media_type="image/png")
+
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
 
-@router.get('/cloudinary_sepia/{image_id}')
-async def get_transform_image_from_cloudinary_sepia(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id)
-    image = await repository_images.get_image(query, db)
-    if image:
-        response = requests.get(image.path, stream=True)
-        if response.status_code == 200:
-            transformed_image = await repository_transform.transform_image(image.path, transformation_options={
-                'format': 'jpg',
-                'group': 'fill',
-                'width': 300,
-                'height': 300,
-                'radius': 20,
-                'effect': 'sepia'
-            })
-            response = requests.get(transformed_image, stream=True)
-            return StreamingResponse(response.iter_content(chunk_size=1024),
-                                     media_type=response.headers['content-type'])
-        else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-
-
-@router.get('/cloudinary_radius/{image_id}')
-async def get_transform_image_from_cloudinary_radius(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id)
-    image = await repository_images.get_image(query, db)
-    if image:
-        response = requests.get(image.path, stream=True)
-        if response.status_code == 200:
-            transformed_image = await repository_transform.transform_image(image.path, transformation_options={
-                'format': 'jpg',
-                'width': 300,  # Нова ширина зображення
-                'height': 300,  # Нова висота зображення
-                'crop': 'fill',  # Обрізка до заданих розмірів зі збереженням пропорцій
-                'gravity': 'face',  # Вирівнювання по обличчю
-                'radius': 'max',  # Максимальний радіус для круглого вирізу
-                'fetch_format': 'auto'  # Автоматичне визначення формату зображення
-            })
-            response = requests.get(transformed_image, stream=True)
-            return StreamingResponse(response.iter_content(chunk_size=1024),
-                                     media_type=response.headers['content-type'])
-        else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-
-
-@router.get('/cloudinary_black_white/{image_id}')
-async def get_transform_image_from_cloudinary_black_white(image_id: int = Path(ge=1),
-                                                          db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id)
-    image = await repository_images.get_image(query, db)
-    if image:
-        response = requests.get(image.path, stream=True)
-        if response.status_code == 200:
-            transformed_image = await repository_transform.transform_image(image.path, transformation_options={
-                'format': 'jpg',
-                'effect': 'grayscale',
-                'width': 300,
-                'height': 300,  # Новая высота изображения
-                'crop': 'fill',  # Заполнение области изображения
-                'gravity': 'center',  # Выравнивание по центру
-                'border': '5px_solid_red'
-            })
-
-            response = requests.get(transformed_image, stream=True)
-            return StreamingResponse(response.iter_content(chunk_size=1024),
-                                     media_type=response.headers['content-type'])
-        else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-
-
-@router.get('/cloudinary_pixelate/{image_id}')
-async def get_transform_image_from_cloudinary_pixelate(image_id: int = Path(ge=1),
-                                                         db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id)
-    image = await repository_images.get_image(query, db)
-    if image:
-        response = requests.get(image.path, stream=True)
-        if response.status_code == 200:
-            transformed_image = await repository_transform.transform_image(image.path, transformation_options={
-                'format': 'jpg',
-                'width': 300,  # Нова ширина зображення
-                'height': 200,  # Нова висота зображення
-                'crop': 'fill',  # Обрізка до заданих розмірів зі збереженням пропорцій
-                'gravity': 'face',  # Вирівнювання по обличчю
-                'effect': 'pixelate:5',  # Ефект мозаїки з коефіцієнтом 5
-                'fetch_format': 'auto'
-            })
-
-            response = requests.get(transformed_image, stream=True)
-            return StreamingResponse(response.iter_content(chunk_size=1024),
-                                     media_type=response.headers['content-type'])
-        else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
