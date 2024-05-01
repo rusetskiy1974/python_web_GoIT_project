@@ -138,7 +138,7 @@ async def update_image(image_id: int = Path(ge=1),
 async def get_images_by_user(limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
                              db: AsyncSession = Depends(get_db),
                              user: User = Depends(auth_service.get_current_user)):
-    query = select(Image).filter_by(owner_id=user.id).offset(offset).limit(limit)
+    query = select(Image).filter_by(user_id=user.id).offset(offset).limit(limit)
     images = await repository_images.get_images(query, db)
     if not images:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT FOUND")

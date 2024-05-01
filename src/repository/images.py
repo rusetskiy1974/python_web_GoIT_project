@@ -26,14 +26,6 @@ async def get_images(query, db: AsyncSession):
     return images.unique().scalars().all()
 
 
-# Delete file from uploads folder
-async def delete_image_from_uploads(file_name):
-    try:
-        os.remove(settings.uploaded_files_path + file_name)
-    except Exception as e:
-        print(e)
-
-
 # Save file to uploads folder
 async def save_file_to_uploads(file, filename):
     if not os.path.exists(settings.uploaded_files_path):
@@ -100,7 +92,7 @@ async def add_tag_to_image(image_id: int, tag_name: str, db: AsyncSession):
     image = image.unique().scalar_one_or_none()
     tag = await create_tag(tag_name, db)
     if image:
-        if tag not in image.tags and image.count_tags <= settings.max_add_tags-1:
+        if tag not in image.tags and image.count_tags <= settings.max_add_tags - 1:
             image.count_tags += 1
             image.tags.append(tag)
             await db.commit()
