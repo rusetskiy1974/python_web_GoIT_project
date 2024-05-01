@@ -2,17 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy import select
 
 from src.database.db import get_db
-from src.models.models import Image
+from src.models.models import Image, Role
 from src.repository import images as repository_images
 from src.repository import transform as repository_transform
 from sqlalchemy.ext.asyncio import AsyncSession
 import requests
 from starlette.responses import StreamingResponse
+from src.services.role import RoleAccess
 
 router = APIRouter(prefix='/cloudinary_transform', tags=['cloudinary_transform'])
+role_user = RoleAccess([Role.user])
 
 
-@router.get('/cloudinary_angle/{image_id}')
+@router.get('/cloudinary_angle/{image_id}', dependencies=[Depends(role_user)])
 async def get_transform_image_from_cloudinary_angle(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
     query = select(Image).filter_by(id=image_id)
     image = await repository_images.get_image(query, db)
@@ -36,7 +38,7 @@ async def get_transform_image_from_cloudinary_angle(image_id: int = Path(ge=1), 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
 
-@router.get('/cloudinary_sepia/{image_id}')
+@router.get('/cloudinary_sepia/{image_id}', dependencies=[Depends(role_user)])
 async def get_transform_image_from_cloudinary_sepia(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
     query = select(Image).filter_by(id=image_id)
     image = await repository_images.get_image(query, db)
@@ -60,7 +62,7 @@ async def get_transform_image_from_cloudinary_sepia(image_id: int = Path(ge=1), 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
 
-@router.get('/cloudinary_radius/{image_id}')
+@router.get('/cloudinary_radius/{image_id}', dependencies=[Depends(role_user)])
 async def get_transform_image_from_cloudinary_radius(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
     query = select(Image).filter_by(id=image_id)
     image = await repository_images.get_image(query, db)
@@ -85,7 +87,7 @@ async def get_transform_image_from_cloudinary_radius(image_id: int = Path(ge=1),
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
 
-@router.get('/cloudinary_black_white/{image_id}')
+@router.get('/cloudinary_black_white/{image_id}', dependencies=[Depends(role_user)])
 async def get_transform_image_from_cloudinary_black_white(image_id: int = Path(ge=1),
                                                           db: AsyncSession = Depends(get_db)):
     query = select(Image).filter_by(id=image_id)
@@ -112,7 +114,7 @@ async def get_transform_image_from_cloudinary_black_white(image_id: int = Path(g
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
 
-@router.get('/cloudinary_pixelate/{image_id}')
+@router.get('/cloudinary_pixelate/{image_id}', dependencies=[Depends(role_user)])
 async def get_transform_image_from_cloudinary_pixelate(image_id: int = Path(ge=1),
                                                          db: AsyncSession = Depends(get_db)):
     query = select(Image).filter_by(id=image_id)
