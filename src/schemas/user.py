@@ -8,11 +8,15 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict, field_validator, mo
 from pydantic.v1 import validator
 
 
-class UserDbSchema(BaseModel):
+class UserReadSchema(BaseModel):
     id: uuid.UUID
     first_name: str
     last_name: str
     email: EmailStr
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserDbSchema(UserReadSchema):
     role: str
     avatar: Optional[str] = None
     created_at: datetime
