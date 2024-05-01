@@ -9,7 +9,7 @@ import requests
 from fastapi import UploadFile, APIRouter, HTTPException, status, Depends, File, Response, Form, Query, Path, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import FileResponse, StreamingResponse
+from starlette.responses import StreamingResponse
 
 from src.database.db import get_db
 from src.models.models import Image, User
@@ -75,6 +75,7 @@ async def upload_image(file: UploadFile = File(..., description="The image file 
                             detail=f"File is not an image. Only images are allowed")
 
     r = cloudinary.uploader.upload(file.file, public_id=f'PhotoShareApp/{new_name}', overwrite=True)
+    print(r)
     image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}')
     image = await repository_images.create_upload_image(size=size_is_valid, image_path=image_path.url, title=title,
                                                         tag=tag, user=user, db=db)
@@ -82,51 +83,16 @@ async def upload_image(file: UploadFile = File(..., description="The image file 
     return image
 
 
-@router.get('/cloudinary_degrees/{image_id}')
-async def get_transform_image_from_cloudinary_degrees(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id)
-    image = await repository_images.get_image(query, db)
-    if image:
-        response = requests.get(image.image_path, stream=True)
-        if response.status_code == 200:
-
-            return StreamingResponse(response.iter_content(chunk_size=1024),
-                                     media_type=response.headers['content-type'])
-        else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-
-
-@router.get('/cloudinary_ratio/{image_id}')
-async def get_transform_image_from_cloudinary_ratio():
-    pass
-
-
-@router.get('/cloudinary_blurred/{image_id}')
-async def get_transform_image_from_cloudinary_blured():
-    pass
-
-
-@router.get('/cloudinary_gen_fill/{image_id}')
-async def get_transform_image_from_cloudinary_gen_fill():
-    pass
-
-
-@router.get('/cloudinary_black_white/{image_id}')
-async def get_transform_image_from_cloudinary_ratio():
-    pass
-
-
-@router.get('/get_image/{image_id}', status_code=status.HTTP_200_OK)
+@router.get('/get_image/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
 async def download_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
     query = select(Image).filter_by(id=image_id)
     image = await repository_images.get_image(query, db)
     if image:
         response = requests.get(image.path, stream=True)
         if response.status_code == 200:
-            return StreamingResponse(response.iter_content(chunk_size=1024),
-                                     media_type=response.headers['content-type'])
+            return image
+            # return StreamingResponse(response.iter_content(chunk_size=1024),
+            #                          media_type=response.headers['content-type'])
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
     else:
