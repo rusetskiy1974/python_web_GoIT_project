@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Path
-from src.schemas.user import UserReadSchema
+from src.schemas.user import UserReadSchema, ImageCreateSchema
 from src.models.models import User, Role
 from src.services.role import RoleAccess
 from src.services.auth import auth_service
