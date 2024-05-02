@@ -17,3 +17,14 @@ class CommentResponseShema(BaseModel):
     image_id: int
     user: UserReadSchema
 
+
+class CommentResponseShemaLight(BaseModel):
+    id: int
+    text: str
+    created_at: datetime
+    updated_at: datetime
+    image_id: int
+
+
+class CommentUpdateSchema(BaseModel):
+    pass
