@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Path
-from src.models import User, Role
+from src.schemas.user import UserReadSchema
+from src.models.models import User, Role
 from src.services.role import RoleAccess
-from src.services.auth import get_current_user
+from src.services.auth import auth_service
 from src.database.db import get_db
-from src.repository.users import get_user_by_email, get_user_by_id
+from src.repository.users import get_user_by_email
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -14,7 +15,7 @@ role_admin = RoleAccess([Role.admin])
 async def change_user_status(
     user_id: int,
     is_active: bool,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(auth_service.get_current_user)
 ):
     user = await User.get(id=user_id)
     if not user:
@@ -26,10 +27,10 @@ async def change_user_status(
     return {"message": f"User status changed to {'active' if is_active else 'inactive'}."}
 
 
-@router.put("/{email}/unblock", response_model=User, dependencies=[Depends(role_admin)])
+@router.put("/{email}/unblock", response_model=UserReadSchema, dependencies=[Depends(role_admin)])
 async def unblock_user_by_email(
     email: str = Path(..., title="The email of the user to unblock"),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     # Get the user by email from the database
