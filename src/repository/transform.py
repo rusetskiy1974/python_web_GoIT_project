@@ -3,10 +3,8 @@ from io import BytesIO
 import cloudinary
 import qrcode
 from cloudinary.utils import cloudinary_url
-from starlette.responses import StreamingResponse
 
 from src.repository import images as repository_images
-
 from src.conf.config import settings
 
 
@@ -22,7 +20,6 @@ async def transform_image(image_url, transformation_options=None):
     name = await repository_images.get_filename_from_cloudinary_url(image_url)
     if transformation_options:
         transformed_url, options = cloudinary_url(f"PhotoShareApp/{name}", **transformation_options)
-        print(transformed_url)
         return transformed_url
 
 
