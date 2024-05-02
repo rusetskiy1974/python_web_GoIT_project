@@ -23,28 +23,30 @@ router = APIRouter(prefix='/cloudinary_transform', tags=['cloudinary_transform']
 transform_list = list(TRANSFORM_METHOD.keys())
 
 
-@router.post('/cloudinary_transform/{image_id}')
-async def get_transform_image_from_cloudinary(
-        method: str = Query(..., description=f"Allowed transform methods: {', '.join(TRANSFORM_METHOD.keys())}"),
-        image_id: int = Path(ge=1),
-        user: User = Depends(auth_service.get_current_user),
-        db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id)
+@router.post('/cloudinary_transform/{image_id}', response_model=TransformedImageResponse)
+async def get_transform_image_from_cloudinary(body: TransformedImageRequest = Depends(),
+                                              user: User = Depends(auth_service.get_current_user),
+                                              db: AsyncSession = Depends(get_db)):
+    query = select(Image).filter_by(id=body.image_id)
     image = await repository_images.get_image(query, db)
     if image:
         response = requests.get(image.path, stream=True)
         if response.status_code == 200:
-            if method not in TRANSFORM_METHOD.keys():
+            if body.method not in TRANSFORM_METHOD.keys():
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Method not found")
 
             transformed_image = await repository_transform.transform_image(image.path,
                                                                            transformation_options=TRANSFORM_METHOD[
-                                                                               method])
+                                                                               body.method])
             new_name = await repository_images.format_filename()
             r = cloudinary.uploader.upload(transformed_image, public_id=f'PhotoShareApp/{new_name}')
             image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}')
-            image = await repository_images.create_upload_image(size=image.size, image_path=image_path.url,
-                                                                title=f"{image.title} {method}", user=user, tag=None, db=db)
+            image = await repository_images.create_upload_image(size=image.size,
+                                                                image_path=image_path.url,
+                                                                title=f"{image.title} {body.method}",
+                                                                user=user,
+                                                                tag=None,
+                                                                db=db)
 
             response = requests.get(transformed_image, stream=True)
 
