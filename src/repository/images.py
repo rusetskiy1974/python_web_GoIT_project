@@ -136,7 +136,7 @@ async def create_upload_image(tag: str | None, user: User, db: AsyncSession, **k
 
 
 async def format_filename(file):
-    filename, ext = os.path.splitext(file.filename)
+    # filename, ext = os.path.splitext(file.filename)
     # new_filename = f"{uuid4().hex}{ext}"
     new_filename = f"{uuid4().hex}"
     return new_filename

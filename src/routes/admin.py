@@ -1,5 +1,9 @@
+import uuid
+
 from fastapi import APIRouter, HTTPException, Depends, Path
-from src.schemas.user import UserReadSchema, ImageCreateSchema
+from sqlalchemy import select
+
+from src.schemas.user import UserReadSchema
 from src.models.models import User, Role
 from src.services.role import RoleAccess
 from src.services.auth import auth_service
@@ -13,25 +17,30 @@ role_admin = RoleAccess([Role.admin])
 
 @router.put("/users/{user_id}/status", dependencies=[Depends(role_admin)])
 async def change_user_status(
-    user_id: int,
-    is_active: bool,
-    current_user: User = Depends(auth_service.get_current_user)
+        user_id: uuid.UUID,
+        is_active: bool,
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(auth_service.get_current_user)
 ):
-    user = await User.get(id=user_id)
+    query = select(User).where(User.id == user_id)
+    user = await db.execute(query)
+    user = user.unique().scalar_one_or_none()
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
-    
-    user.is_active = is_active
-    await user.save()
-    
+
+    user.is_active = False
+    await db.commit()
+    await db.refresh(user)
+
     return {"message": f"User status changed to {'active' if is_active else 'inactive'}."}
 
 
 @router.put("/{email}/unblock", response_model=UserReadSchema, dependencies=[Depends(role_admin)])
 async def unblock_user_by_email(
-    email: str = Path(..., title="The email of the user to unblock"),
-    current_user: User = Depends(auth_service.get_current_user),
-    db: AsyncSession = Depends(get_db),
+        email: str = Path(..., title="The email of the user to unblock"),
+        current_user: User = Depends(auth_service.get_current_user),
+        db: AsyncSession = Depends(get_db),
 ):
     # Get the user by email from the database
     user = await get_user_by_email(email, db)
