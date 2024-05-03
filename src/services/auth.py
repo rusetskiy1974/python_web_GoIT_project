@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from jose import jwt, JWTError
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -64,7 +64,7 @@ async def upload_image(file: UploadFile = File(..., description="The image file 
                        tag: Optional[str] = None,
                        user: User = Depends(auth_service.get_current_user),
                        db: AsyncSession = Depends(get_db)):
-    new_name = await repository_images.format_filename(file)
+    new_name = await repository_images.format_filename()
     size_is_valid = await repository_images.get_file_size(file)
     file_is_valid = await repository_images.file_is_image(file)
     if size_is_valid > settings.max_image_size:
