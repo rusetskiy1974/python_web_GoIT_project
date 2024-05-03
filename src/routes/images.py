@@ -100,7 +100,7 @@ async def get_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_d
     ...
 
 
-@router.get('/{image_id}/download', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
+@router.get('/download/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
 async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
     query = select(Image).filter_by(id=image_id)
     image = await repository_images.get_image(query, db)
