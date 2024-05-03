@@ -10,14 +10,25 @@ async def create_comment(image_id: int,
                          text: str,
                          db: AsyncSession, 
                          user: User):
+    stmt = select(Image).filter_by(id=image_id)
+    result = await db.execute(stmt)
+    image_exist = result.unique().scalar_one_or_none()
+    print(image_exist)
+    print('===========================')
+    if image_exist == None:
+        print('------------------')
+        return None
     comment = Comment(
         text=text,
         image_id=image_id,
         user=user) 
+    print(comment.id)
     db.add(comment)
+    print(comment.id)
     try:
         await db.commit()
         await db.refresh(comment)
+        print(comment.id)
         return comment
     except Exception as err:
         return None
