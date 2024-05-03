@@ -148,3 +148,8 @@ async def get_filename_from_cloudinary_url(cloudinary_url):
     # Останній елемент списку зазвичай є ім'ям файлу
     filename = parts[-1]
     return filename
+
+async def get_user_by_email(email: str, db: AsyncSession):
+    query = select(User).where(User.email == email)
+    user = await db.execute(query)
+    return user.unique().scalar_one_or_none()

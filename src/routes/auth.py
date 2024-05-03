@@ -45,6 +45,8 @@ async def login(body: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_EMAIL)
     if not user.confirmed:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.NOT_CONFIRMED_EMAIL)
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=messages.INACTIVE_USER)
     if not auth_service.verify_password(body.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_PASSWORD)
     # Generate JWT
@@ -52,7 +54,6 @@ async def login(body: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
     refresh_token_ = await auth_service.create_refresh_token(data={"sub": user.email})
     await repository_users.update_token(user, refresh_token_, db)
     return {"access_token": access_token, "refresh_token": refresh_token_, "token_type": "bearer"}
-
 
 @router.post("/logout", response_model=LogoutResponseSchema)
 async def logout(user: User = Depends(auth_service.get_current_user),
