@@ -21,7 +21,7 @@ async def get_image(query, db: AsyncSession):
     return result.unique().scalar_one_or_none()
 
 
-async def get_images(query, db: AsyncSession):
+async def get_all_images(query, db: AsyncSession):
     images = await db.execute(query)
     return images.unique().scalars().all()
 
