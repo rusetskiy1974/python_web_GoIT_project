@@ -25,6 +25,7 @@ jinja2 = "^3.1.3"
 requests = "^2.31.0"
 uploadview = "^0.2.7"
 qrcode = "^7.4.2"
+pillow = "^10.3.0"
 
 
 [build-system]
