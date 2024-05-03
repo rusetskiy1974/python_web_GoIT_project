@@ -6,14 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.schemas.comments import CommentCreateSchema, CommentResponseShema
 from src.models.models import User, Comment, Image
 
+
 async def create_comment(image_id: int,
                          text: str,
-                         db: AsyncSession, 
+                         db: AsyncSession,
                          user: User):
     comment = Comment(
         text=text,
         image_id=image_id,
-        user=user) 
+        user=user)
     db.add(comment)
     try:
         await db.commit()
@@ -21,7 +22,7 @@ async def create_comment(image_id: int,
         return comment
     except Exception as err:
         return None
-    
+
 
 async def get_comments(image_id: int, limit: int, offset: int, db: AsyncSession):
     stmt = select(Comment).filter_by(image_id=image_id).offset(offset).limit(limit)

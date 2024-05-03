@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.db import get_db
 from src.models.models import User
 from src.repository import users as repository_users
-from src.schemas.user import UserCreateSchema, UserUpdateSchema, TokenSchema, UserResponseSchema, RequestEmail, \
-    ConfirmationResponse, LogoutResponseSchema
+from src.schemas.user import UserCreateSchema, UserUpdateSchema, TokenSchema, \
+    UserResponseSchema, RequestEmail, ConfirmationResponse, LogoutResponseSchema
 from src.services.auth import auth_service
 from src.services.email import send_email
 from src.conf import messages
@@ -23,10 +23,10 @@ async def signup(background_tasks: BackgroundTasks,
                  request: Request,
                  body: UserCreateSchema = Depends(),
                  db: AsyncSession = Depends(get_db),
-                 confirmed_password: str = Query(min_length=8, max_length=12),
                  ):
-    if not secrets.compare_digest(body.password, confirmed_password):
+    if not secrets.compare_digest(body.password, body.password_confirmation):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=messages.PASSWORDS_NOT_MATCH)
+    del body.password_confirmation
     exist_user = await repository_users.get_user_by_email(email=body.email, db=db)
     if exist_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=messages.ACCOUNT_EXISTS)
@@ -43,7 +43,7 @@ async def login(body: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_EMAIL)
     if not user.confirmed:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.NOT_CONFIRMED_EMAIL)
-    if not auth_service.verify_password(body.password, user.password):
+    if not await auth_service.verify_password(body.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_PASSWORD)
     # Generate JWT
     access_token = await auth_service.create_access_token(data={"sub": user.email})

@@ -2,6 +2,7 @@ from typing import Optional, List
 from datetime import datetime
 from typing import Optional
 
+from fastapi import Path, Form
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 from src.models.models import Tag
@@ -23,5 +24,10 @@ class ImageReadSchema(BaseModel):
 class ImageCreateSchema(BaseModel):
     path: str
     title: str
+
+
+class ImageUpdateSchema(BaseModel):
+    image_id: int = Path(ge=1)
+    title: str = Form(min_length=3, max_length=50)
 
 

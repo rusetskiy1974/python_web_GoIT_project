@@ -12,13 +12,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import StreamingResponse
 
 from src.database.db import get_db
-from src.models.models import Image, User
+from src.models.models import Image, User, Role
 from src.conf.config import settings
 from src.services.auth import auth_service
-from src.schemas.image import ImageCreateSchema, ImageReadSchema
+from src.schemas.image import ImageCreateSchema, ImageReadSchema, ImageUpdateSchema
 from src.repository import images as repository_images
+from src.services.roles import RolesAccess
 
 router = APIRouter(prefix='/images', tags=['image'])
+
+
+
+
+access_block = RolesAccess([Role.admin])
 
 cloudinary.config(
     cloud_name=settings.cloudinary_name,
@@ -121,14 +127,13 @@ async def delete_image(image_id: int = Path(ge=1),
 
 
 @router.put('/update/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
-async def update_image(image_id: int = Path(ge=1),
-                       title: str = Form(min_length=3, max_length=50),
+async def update_image(body: ImageUpdateSchema = Depends(),
                        user: User = Depends(auth_service.get_current_user),
                        db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id).filter_by(user_id=user.id)
+    query = select(Image).filter_by(id=body.image_id).filter_by(user_id=user.id)
     image = await repository_images.get_image(query, db)
     if image:
-        image = await repository_images.update_image_title(image, title, db)
+        image = await repository_images.update_image_title(image, body.title, db)
         return image
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
