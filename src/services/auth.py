@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.conf.config import settings
 from src.database.db import get_db
 from src.repository import users as repository_users
-from src.models.models import User
 
 
 class Auth:
