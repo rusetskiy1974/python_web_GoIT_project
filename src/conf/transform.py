@@ -1,4 +1,3 @@
-
 TRANSFORM_METHOD = {'angle': {
     'format': 'jpg',
     'angle': 45,
@@ -40,4 +39,12 @@ TRANSFORM_METHOD = {'angle': {
         'gravity': 'face',
         'effect': 'pixelate:5',
         'fetch_format': 'auto'
+    },
+    'blur': {
+        'format': 'jpg',
+        "width": 300,
+        "height": 300,
+        "crop": "fill",
+        "effect": "blur:500",
+        "fetch_format": "auto"
     }}

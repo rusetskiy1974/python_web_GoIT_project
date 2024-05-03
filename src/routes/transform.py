@@ -1,14 +1,14 @@
-import tempfile
 
 import cloudinary
 import cloudinary.uploader
-from fastapi import APIRouter, Depends, HTTPException, Path, status, Query
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 import requests
 from PIL import Image
 from io import BytesIO
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import StreamingResponse, FileResponse
+from starlette.responses import StreamingResponse
 
 from src.database.db import get_db
 from src.models.models import Image, User
@@ -23,10 +23,10 @@ router = APIRouter(prefix='/cloudinary_transform', tags=['cloudinary_transform']
 transform_list = list(TRANSFORM_METHOD.keys())
 
 
-@router.post('/cloudinary_transform/{image_id}', response_model=TransformedImageResponse)
-async def get_transform_image_from_cloudinary(body: TransformedImageRequest = Depends(),
-                                              user: User = Depends(auth_service.get_current_user),
-                                              db: AsyncSession = Depends(get_db)):
+@router.post('/{image_id}', response_model=TransformedImageResponse)
+async def create_transformed_image(body: TransformedImageRequest = Depends(),
+                                   user: User = Depends(auth_service.get_current_user),
+                                   db: AsyncSession = Depends(get_db)):
     query = select(Image).filter_by(id=body.image_id)
     image = await repository_images.get_image(query, db)
     if image:
