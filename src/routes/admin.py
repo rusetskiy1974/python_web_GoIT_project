@@ -18,9 +18,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 role_admin = RoleAccess([Role.admin])
+role_admin_moderator = RoleAccess([Role.admin, Role.moderator])
 
-
-@router.put("/users/{email}/status", dependencies=[Depends(role_admin)])
+@router.put("/users/{email}/block", dependencies=[Depends(role_admin)])
 async def change_user_status_by_email(
         is_active: bool,
         email: str = Path(..., title="The email of the user whose status to change"),
@@ -56,7 +56,7 @@ async def unblock_user_by_email(
     return user
 
 
-@router.delete('/admin/delete/{image_id}', status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(role_admin)])
+@router.delete('/admin/delete/{image_id}', status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(role_admin_moderator)])
 async def admin_delete_image(image_id: int = Path(..., description="The ID of the image to delete"),
                              db: AsyncSession = Depends(get_db)):
     query = select(Image).filter_by(id=image_id)
@@ -74,7 +74,7 @@ async def admin_delete_image(image_id: int = Path(..., description="The ID of th
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
     
     
-@router.put('/update/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK, dependencies=[Depends(role_admin)])
+@router.put('/update/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK, dependencies=[Depends(role_admin_moderator)])
 async def update_image_by_admin(
         image_id: int,
         body: ImageUpdateSchema = Depends(),
@@ -88,7 +88,7 @@ async def update_image_by_admin(
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
-@router.put("/{user_id}/role", dependencies=[Depends(role_admin)])
+@router.put("/{user_id}/change_role", dependencies=[Depends(role_admin)])
 async def update_user_role(
     user_id: uuid.UUID,
     role: Role,

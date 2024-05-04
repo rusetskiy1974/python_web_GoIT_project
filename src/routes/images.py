@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import StreamingResponse
 
 from src.database.db import get_db
-from src.models.models import Image, User, Role
+from src.models.models import Image, User
 from src.conf.config import settings
 from src.services.auth import auth_service
 from src.schemas.image import ImageCreateSchema, ImageReadSchema
@@ -21,8 +21,7 @@ from src.services.role import RoleAccess
 
 router = APIRouter(prefix='/images', tags=['image'])
 
-role_user = RoleAccess([Role.user])
-role_admin = RoleAccess([Role.admin, Role.user])
+
 
 cloudinary.config(
     cloud_name=settings.cloudinary_name,
@@ -32,7 +31,7 @@ cloudinary.config(
 )
 
 
-@router.get('/tag', response_model=List[ImageReadSchema], dependencies=[Depends(role_user)])
+@router.get('/tag', response_model=List[ImageReadSchema])
 async def get_images_by_tag(tag_name: str = Query(description="Input tag", min_length=3, max_length=50),
                             limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
                             db: AsyncSession = Depends(get_db)):
@@ -42,7 +41,7 @@ async def get_images_by_tag(tag_name: str = Query(description="Input tag", min_l
     return images
 
 
-@router.post('/add_tag/{image_id}', response_model=ImageReadSchema, dependencies=[Depends(role_user)])
+@router.post('/add_tag/{image_id}', response_model=ImageReadSchema)
 async def add_tag_to_image(image_id: int = Path(ge=1),
                            tag_name: str = Query(description="Input tag", min_length=3, max_length=50),
                            db: AsyncSession = Depends(get_db)):
@@ -52,7 +51,7 @@ async def add_tag_to_image(image_id: int = Path(ge=1),
     return result
 
 
-@router.get('/all', response_model=List[ImageReadSchema], dependencies=[Depends(role_user)])
+@router.get('/all', response_model=List[ImageReadSchema])
 async def get_images(limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
                      db: AsyncSession = Depends(get_db)):
     query = select(Image).offset(offset).limit(limit)
@@ -62,7 +61,7 @@ async def get_images(limit: int = Query(10, ge=10, le=500), offset: int = Query(
     return images
 
 
-@router.post("/upload", response_model=ImageReadSchema, status_code=status.HTTP_201_CREATED, dependencies=[Depends(role_user)])
+@router.post("/upload", response_model=ImageReadSchema, status_code=status.HTTP_201_CREATED)
 async def upload_image(file: UploadFile = File(..., description="The image file to upload"),
                        title: str = Form(min_length=3, max_length=50),
                        tag: Optional[str] = None,
@@ -87,7 +86,7 @@ async def upload_image(file: UploadFile = File(..., description="The image file 
     return image
 
 
-@router.get('/get_image/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK, dependencies=[Depends(role_user)])
+@router.get('/get_image/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
 async def download_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
     query = select(Image).filter_by(id=image_id)
     image = await repository_images.get_image(query, db)
@@ -103,7 +102,7 @@ async def download_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
 
-@router.delete('/delete/{image_id}', status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(role_admin)])
+@router.delete('/delete/{image_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_image(image_id: int = Path(ge=1),
                        user: User = Depends(auth_service.get_current_user),
                        db: AsyncSession = Depends(get_db)):
@@ -124,7 +123,7 @@ async def delete_image(image_id: int = Path(ge=1),
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
 
-@router.put('/update/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK, dependencies=[Depends(role_admin)])
+@router.put('/update/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
 async def update_image(image_id: int = Path(ge=1),
                        title: str = Form(min_length=3, max_length=50),
                        user: User = Depends(auth_service.get_current_user),
@@ -138,7 +137,7 @@ async def update_image(image_id: int = Path(ge=1),
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
 
-@router.get('/', response_model=list[ImageReadSchema], dependencies=[Depends(role_admin)])
+@router.get('/', response_model=list[ImageReadSchema])
 async def get_images_by_user(limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
                              db: AsyncSession = Depends(get_db),
                              user: User = Depends(auth_service.get_current_user)):
