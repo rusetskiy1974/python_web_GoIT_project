@@ -67,3 +67,5 @@ async def update_password(user: User, new_password: str, db: AsyncSession) -> Us
     await db.commit()
     await db.refresh(user)
     return user
+
+

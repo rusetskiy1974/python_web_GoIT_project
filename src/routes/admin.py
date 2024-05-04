@@ -1,3 +1,4 @@
+
 from typing import Optional
 import uuid
 import cloudinary.uploader
@@ -6,12 +7,12 @@ import requests
 from sqlalchemy import select
 
 from src.schemas.user import UserReadSchema
-from src.schemas.image import ImageReadSchema  
+from src.schemas.image import ImageReadSchema, ImageUpdateSchema
 from src.models.models import Image, User, Role
 from src.services.role import RoleAccess
 from src.services.auth import auth_service
 from src.database.db import get_db
-from src.repository.users import get_user_by_email
+from src.repository.users import get_user_by_email, get_user_by_id
 from src.repository import images as repository_images
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +27,6 @@ async def change_user_status_by_email(
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(auth_service.get_current_user)
 ):
-    
     user = await get_user_by_email(email, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -76,15 +76,29 @@ async def admin_delete_image(image_id: int = Path(..., description="The ID of th
     
 @router.put('/update/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK, dependencies=[Depends(role_admin)])
 async def update_image_by_admin(
-        image_id: int = Path(..., title="The ID of the image to update"),
-        title: str = Form(None, min_length=3, max_length=50, title="New title for the image (optional)"),
-        current_user: User = Depends(auth_service.get_current_user),
+        image_id: int,
+        body: ImageUpdateSchema = Depends(),
         db: AsyncSession = Depends(get_db)
 ):
     query = select(Image).filter_by(id=image_id)
     image = await repository_images.get_image(query, db)
-    if not image:
+    if image:
+        image = await repository_images.update_image_title(image, body.title, db)
+        return image  
+    else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-    if title is not None:
-        image = await repository_images.update_image_title(image, title, db)
-    return image
+
+@router.put("/{user_id}/role", dependencies=[Depends(role_admin)])
+async def update_user_role(
+    user_id: uuid.UUID,
+    role: Role,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(auth_service.get_current_user)
+):
+    user = await get_user_by_id(user_id, db)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    user.role = role
+    await db.commit()
+    await db.refresh(user)
+    return {"message": f"User role updated to {role}"}
