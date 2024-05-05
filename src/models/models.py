@@ -81,3 +81,13 @@ class Comment(Base):
 
     user = relationship("User", back_populates="comments")
     image = relationship("Image", back_populates="comments")
+
+
+class BlackList(Base):
+    __tablename__ = 'black_list'
+
+    id = Column(Integer, primary_key=True, index=True)
+    token = Column(String(255), unique=True, index=True)
+    email = Column(String(320), unique=True, index=True, nullable=False)
+
+

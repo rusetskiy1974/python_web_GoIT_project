@@ -7,6 +7,7 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.conf import messages
 from src.conf.config import settings
 from src.database.db import get_db
 from src.repository import users as repository_users
@@ -17,6 +18,8 @@ class Auth:
     SECRET_KEY = settings.secret_key
     ALGORITHM = settings.algorithm
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+    # blacklist_access_tokens = []
 
     async def verify_password(self, plain_password, hashed_password) -> bool:
         return self.pwd_context.verify(plain_password, hashed_password)
@@ -30,7 +33,7 @@ class Auth:
         if expires_delta:
             expire = datetime.utcnow() + timedelta(seconds=expires_delta)
         else:
-            expire = datetime.utcnow() + timedelta(minutes=15)
+            expire = datetime.utcnow() + timedelta(minutes=4)
         to_encode.update({"iat": datetime.utcnow(), "exp": expire, "scope": "access_token"})
         encoded_access_token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
         return encoded_access_token
@@ -71,6 +74,16 @@ class Auth:
                 email = payload["sub"]
                 if email is None:
                     raise credentials_exception
+                else:
+                    logout_token = await repository_users.find_black_list_token(email, db)
+                    if logout_token is not None:
+                        expiration_time = await self.get_token_expiration_time(logout_token.token)     #datetime.utcfromtimestamp(payload['exp'])
+                        if expiration_time and (expiration_time > datetime.utcnow()):
+                            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked")
+                        else:
+                            await repository_users.clear_black_list_token(email, db)
+                            raise credentials_exception
+
             else:
                 raise credentials_exception
 
@@ -104,6 +117,21 @@ class Auth:
             print(e)
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail="Invalid token for email verification")
+
+    # @staticmethod
+    async def get_user_access_token(self, access_token: str = Depends(oauth2_scheme)):
+        return access_token
+
+    async def get_token_expiration_time(self, token: str):
+        try:
+            payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
+            if payload['scope'] == 'access_token':
+                expiration_time = datetime.utcfromtimestamp(payload['exp'])
+                return expiration_time
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid scope for token")
+
+        except JWTError:
+            return
 
 
 auth_service = Auth()
