@@ -55,7 +55,7 @@ async def unblock_user_by_email(
 async def update_user_role(
     body: UserRoleUpdate = Depends(),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(auth_service.get_current_user)
+    # current_user: User = Depends(auth_service.get_current_user)
 ):
     user = await repository_users.get_user_by_id(body.user_id, db)
     if not user:
