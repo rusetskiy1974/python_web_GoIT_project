@@ -33,8 +33,7 @@ async def signup(background_tasks: BackgroundTasks,
     body.password = await auth_service.get_password_hash(body.password)
     new_user = await repository_users.create_user(body, db=db)
     background_tasks.add_task(send_email, new_user.email, new_user.fullname, str(request.base_url))
-    
-    
+
     return {"user": new_user, "detail": "User successfully created. Check your email for confirmation."}
 
 
@@ -54,6 +53,7 @@ async def login(body: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
     refresh_token_ = await auth_service.create_refresh_token(data={"sub": user.email})
     await repository_users.update_token(user, refresh_token_, db)
     return {"access_token": access_token, "refresh_token": refresh_token_, "token_type": "bearer"}
+
 
 @router.post("/logout", response_model=LogoutResponseSchema)
 async def logout(user: User = Depends(auth_service.get_current_user),

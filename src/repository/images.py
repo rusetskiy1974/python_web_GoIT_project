@@ -121,12 +121,12 @@ async def create_tag(tag_name: str, db: AsyncSession):
     return tag
 
 
-async def create_upload_image(tag: str | None, user: User, db: AsyncSession, **kwargs):
+async def create_upload_image(user: User, db: AsyncSession, **kwargs):
     data = ImageCreateSchema(title=kwargs['title'], path=kwargs['image_path'])
     new_image = Image(**data.model_dump(exclude_unset=True), size=kwargs['size'], user_id=user.id)
 
-    if tag:
-        tag = await create_tag(tag, db)
+    if kwargs['tag']:
+        tag = await create_tag(kwargs['tag'], db)
         new_image.count_tags = 1
         new_image.tags.append(tag)
     db.add(new_image)
@@ -135,9 +135,7 @@ async def create_upload_image(tag: str | None, user: User, db: AsyncSession, **k
     return new_image
 
 
-async def format_filename(file):
-    # filename, ext = os.path.splitext(file.filename)
-    # new_filename = f"{uuid4().hex}{ext}"
+async def format_filename():
     new_filename = f"{uuid4().hex}"
     return new_filename
 
@@ -148,6 +146,7 @@ async def get_filename_from_cloudinary_url(cloudinary_url):
     # Останній елемент списку зазвичай є ім'ям файлу
     filename = parts[-1]
     return filename
+
 
 async def get_user_by_email(email: str, db: AsyncSession):
     query = select(User).where(User.email == email)
