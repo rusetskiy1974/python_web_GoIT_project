@@ -7,4 +7,5 @@ EMAIL_CONFIRMED = "Email confirmed"
 CHECK_EMAIL_FOR_CONFIRMATION = "Check your email for confirmation"
 EMAIL_ALREADY_CONFIRMED = "Your email is already confirmed"
 PASSWORDS_NOT_MATCH = "Your passwords do not match"
-INACTIVE_USER = "User status changed"
+INACTIVE_USER = "Profile is blocked. Please contact the admin"
+ 
