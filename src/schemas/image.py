@@ -25,6 +25,7 @@ class ImageCreateSchema(BaseModel):
     path: str
     title: str
 
+
 class ImageUpdateSchema(BaseModel):
     image_id: int = Path(ge=1)
     title: str = Form(min_length=3, max_length=50)

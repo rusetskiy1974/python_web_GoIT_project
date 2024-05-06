@@ -1,7 +1,6 @@
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, status, Security, Request, BackgroundTasks, Query
 from fastapi.security import OAuth2PasswordRequestForm, HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.db import get_db
