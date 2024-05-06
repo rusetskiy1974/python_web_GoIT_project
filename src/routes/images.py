@@ -1,18 +1,15 @@
-import io
-import os
-from typing import Optional, List, Annotated
+from typing import Optional, List
 
 import cloudinary
 import cloudinary.uploader
 import requests
 
-from fastapi import UploadFile, APIRouter, HTTPException, status, Depends, File, Response, Form, Query, Path, Request
-from sqlalchemy import select
+from fastapi import UploadFile, APIRouter, HTTPException, status, Depends, File, Form, Query, Path, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import StreamingResponse
 
 from src.database.db import get_db
-from src.models.models import Image, User
+from src.models.models import User
 from src.conf.config import settings
 from src.services.auth import auth_service
 from src.schemas.image import ImageCreateSchema, ImageReadSchema
@@ -28,7 +25,7 @@ cloudinary.config(
 )
 
 
-@router.get('/tag/{tag}', response_model=List[ImageReadSchema])
+@router.get('/tag/{tag}', response_model=List[ImageReadSchema], status_code=status.HTTP_200_OK)
 async def get_images_by_tag(tag: str = Path(description="Input tag", min_length=3, max_length=50),
                             limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
                             db: AsyncSession = Depends(get_db)):
@@ -38,7 +35,7 @@ async def get_images_by_tag(tag: str = Path(description="Input tag", min_length=
     return images
 
 
-@router.post('/{image_id}/tag/{tag}', response_model=ImageReadSchema)
+@router.post('/{image_id}/tag/{tag}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
 async def add_tag_to_image(image_id: int = Path(ge=1),
                            tag: str = Path(description="Input tag", min_length=3, max_length=50),
                            db: AsyncSession = Depends(get_db)):
@@ -48,23 +45,22 @@ async def add_tag_to_image(image_id: int = Path(ge=1),
     return result
 
 
-@router.delete('/{image_id}/tag/{tag}', response_model=ImageReadSchema)  #TODO images.delete_tag_from_image()
+@router.delete('/{image_id}/tag/{tag}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
 async def delete_tag_from_image(
     image_id: int = Path(ge=1),
-    tag: str = Path(description="Input tag", min_length=3, max_length=50),
+    tag: str = Path(description="Input tag to delete", min_length=3, max_length=50),
     db: AsyncSession = Depends(get_db)
-): ...
-    # result = await repository_images.delete_tag_from_image(image_id, tag, db)
-    # if not result:
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="IMAGE NOT EXISTS")
-    # return result
+):
+    result = await repository_images.delete_tag_from_image(image_id, tag.strip(), db)
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="IMAGE NOT EXISTS")
+    return result
 
 
-@router.get('/all', response_model=List[ImageReadSchema])
+@router.get('/all', response_model=List[ImageReadSchema], status_code=status.HTTP_200_OK)
 async def get_all_images(limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
-                     db: AsyncSession = Depends(get_db)):
-    query = select(Image).offset(offset).limit(limit)
-    images = await repository_images.get_all_images(query, db)
+                         db: AsyncSession = Depends(get_db)):
+    images = await repository_images.get_images(limit, offset, db)
     if not images:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT FOUND")
     return images
@@ -84,26 +80,26 @@ async def cteate_image(file: UploadFile = File(..., description="The image file 
                             detail=f"File too large. Max size is {settings.max_image_size} bytes")
     if not file_is_valid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"File is not an image. Only images are allowed")
+                            detail="File is not an image. Only images are allowed")
 
     r = cloudinary.uploader.upload(file.file, public_id=f'PhotoShareApp/{new_name}', overwrite=True)
-    print(r)
     image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}')
-    image = await repository_images.create_upload_image(size=size_is_valid, image_path=image_path.url, title=title,
+    image = await repository_images.create_image(size=size_is_valid, image_path=image_path.url, title=title,
                                                         tag=tag, user=user, db=db)
-
     return image
 
 
 @router.get('/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
-async def get_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):  # TODO
-    ...
+async def get_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
+    image = await repository_images.get_image(image_id, db)
+    if not image:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT FOUND")
+    return image
 
 
 @router.get('/download/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
 async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id)
-    image = await repository_images.get_image(query, db)
+    image = await repository_images.get_image(image_id, db)
     if image:
         response = requests.get(image.path, stream=True)
         if response.status_code == 200:
@@ -120,16 +116,14 @@ async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depend
 async def delete_image(image_id: int = Path(ge=1),
                        user: User = Depends(auth_service.get_current_user),
                        db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id).filter_by(user_id=user.id)
-    image = await repository_images.get_image(query, db)
+    image = await repository_images.get_user_image(image_id, user, db)
 
     if image:
         image_name = await repository_images.get_filename_from_cloudinary_url(image.path)
         response = requests.get(image.path, stream=True)
         if response.status_code == 200:
             cloudinary.uploader.destroy(f'PhotoShareApp/{image_name}')
-            await repository_images.delete_image_from_db(image, db)
-            return {'ditail': f'Image successfully deleted'}
+            return {'ditail': 'Image successfully deleted'}
         else:
             await repository_images.delete_image_from_db(image, db)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
@@ -142,21 +136,19 @@ async def update_image(image_id: int = Path(ge=1),
                        title: str = Form(min_length=3, max_length=50),
                        user: User = Depends(auth_service.get_current_user),
                        db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id).filter_by(user_id=user.id)
-    image = await repository_images.get_image(query, db)
-    if image:
-        image = await repository_images.update_image_title(image, title, db)
-        return image
-    else:
+    image = await repository_images.get_user_image(image_id, user, db)
+    if not image:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
+    image = await repository_images.update_image_title(image, title, db)
+    return image
 
-@router.get('/', response_model=list[ImageReadSchema])
+
+@router.get('/', response_model=list[ImageReadSchema], status_code=status.HTTP_200_OK)
 async def get_images_by_user(limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
                              db: AsyncSession = Depends(get_db),
                              user: User = Depends(auth_service.get_current_user)):
-    query = select(Image).filter_by(user_id=user.id).offset(offset).limit(limit)
-    images = await repository_images.get_images(query, db)
+    images = await repository_images.get_images(limit, offset, user, db)
     if not images:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT FOUND")
     return images
