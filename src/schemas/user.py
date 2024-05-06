@@ -35,6 +35,7 @@ class UserCreateSchema(BaseModel):
     last_name: str = Field(min_length=2, max_length=50)
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=12)
+    password_confirmation: str = Field(..., min_length=8, max_length=12)
 
 
 class UserUpdateSchema(BaseModel):

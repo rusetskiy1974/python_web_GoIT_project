@@ -55,7 +55,8 @@ async def forgot_password(background_tasks: BackgroundTasks,
 
 
 @router.post("/reset_password/{token}")
-async def reset_password(token: str, request_: Request,
+async def reset_password(token:  str,
+                         request_: Request,
                          db: AsyncSession = Depends(get_db)) -> dict:
     form_data = await request_.form()
     new_password = form_data["new_password"]

@@ -1,13 +1,15 @@
 import secrets
-from fastapi import APIRouter, Depends, HTTPException, status, Security, Request, BackgroundTasks, Query
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, status, Security, Request, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm, HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.db import get_db
 from src.models.models import User
 from src.repository import users as repository_users
-from src.schemas.user import UserCreateSchema, UserUpdateSchema, TokenSchema, UserResponseSchema, RequestEmail, \
-    ConfirmationResponse, LogoutResponseSchema
+from src.schemas.user import UserCreateSchema, UserUpdateSchema, TokenSchema, \
+    UserResponseSchema, RequestEmail, ConfirmationResponse, LogoutResponseSchema
 from src.services.auth import auth_service
 from src.services.email import send_email
 from src.conf import messages
@@ -22,10 +24,10 @@ async def signup(background_tasks: BackgroundTasks,
                  request: Request,
                  body: UserCreateSchema = Depends(),
                  db: AsyncSession = Depends(get_db),
-                 confirmed_password: str = Query(min_length=8, max_length=12),
                  ):
-    if not secrets.compare_digest(body.password, confirmed_password):
+    if not secrets.compare_digest(body.password, body.password_confirmation):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=messages.PASSWORDS_NOT_MATCH)
+    del body.password_confirmation
     exist_user = await repository_users.get_user_by_email(email=body.email, db=db)
     if exist_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=messages.ACCOUNT_EXISTS)
@@ -37,7 +39,8 @@ async def signup(background_tasks: BackgroundTasks,
 
 
 @router.post("/login", response_model=TokenSchema)
-async def login(body: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+async def login(body: OAuth2PasswordRequestForm = Depends(),
+                db: AsyncSession = Depends(get_db)):
     user = await repository_users.get_user_by_email(body.username, db)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_EMAIL)
@@ -47,7 +50,17 @@ async def login(body: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=messages.INACTIVE_USER)
     if not await auth_service.verify_password(body.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_PASSWORD)
-    # Generate JWT
+
+    access_token_blacklist = await repository_users.find_black_list_token(user.email, db)
+
+    if access_token_blacklist is not None:
+        expiration_time = await auth_service.get_token_expiration_time(access_token_blacklist.token)
+        if expiration_time and (expiration_time > datetime.utcnow()):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.TOKEN_REVOKED)
+
+        else:
+            await repository_users.clear_black_list_token(user.email, db)
+
     access_token = await auth_service.create_access_token(data={"sub": user.email})
     refresh_token_ = await auth_service.create_refresh_token(data={"sub": user.email})
     await repository_users.update_token(user, refresh_token_, db)
@@ -55,11 +68,12 @@ async def login(body: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
 
 
 @router.post("/logout", response_model=LogoutResponseSchema)
-async def logout(user: User = Depends(auth_service.get_current_user),
+async def logout(access_token: str = Depends(auth_service.get_user_access_token),
+                 user: User = Depends(auth_service.get_current_user),
                  db: AsyncSession = Depends(get_db)) -> dict:
-    user.refresh_token = None
-    await db.commit()
-    return {"message": "Success"}
+
+    await repository_users.save_token_to_blacklist(user, access_token, db)
+    return {"message": "Logout successful."}
 
 
 @router.get('/refresh_token', response_model=TokenSchema)
