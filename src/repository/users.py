@@ -1,14 +1,16 @@
+import uuid
+
 from fastapi import Depends
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from libgravatar import Gravatar
 
 from src.database.db import get_db
-from src.models.models import User, Role
+from src.models.models import User, Role, BlackList
 from src.schemas.user import UserCreateSchema
 
 
-async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)) -> User | None:
+async def get_user_by_id(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> User | None:
     query = select(User).filter_by(id=user_id)
     user = await db.execute(query)
     return user.scalar_one_or_none()
@@ -67,3 +69,33 @@ async def update_password(user: User, new_password: str, db: AsyncSession) -> Us
     await db.commit()
     await db.refresh(user)
     return user
+
+
+async def save_token_to_blacklist(user: User, token: str, db: AsyncSession):
+    query = select(BlackList).filter_by(email=user.email)
+    existing_record = await db.execute(query)
+    token_to_blacklist = existing_record.scalar_one_or_none()
+    if token_to_blacklist is not None:
+        token_to_blacklist.token = token
+    else:
+        token_to_blacklist = BlackList(token=token, email=user.email)
+        db.add(token_to_blacklist)
+
+    await db.commit()
+    await db.refresh(token_to_blacklist)
+    return token_to_blacklist
+
+
+async def find_black_list_token(email: str, db: AsyncSession):
+    query = select(BlackList).filter_by(email=email)
+    token = await db.execute(query)
+    return token.unique().scalar_one_or_none()
+
+
+async def clear_black_list_token(email: str, db: AsyncSession):
+    query = select(BlackList).filter_by(email=email)
+    token = await db.execute(query)
+    token = token.unique().scalar_one_or_none()
+    if token is not None:
+        await db.delete(token)
+        await db.commit()
