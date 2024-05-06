@@ -3,7 +3,6 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Security, Request, BackgroundTasks, Query, Header
 from fastapi.security import OAuth2PasswordRequestForm, HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.db import get_db
@@ -35,6 +34,7 @@ async def signup(background_tasks: BackgroundTasks,
     body.password = await auth_service.get_password_hash(body.password)
     new_user = await repository_users.create_user(body, db=db)
     background_tasks.add_task(send_email, new_user.email, new_user.fullname, str(request.base_url))
+
     return {"user": new_user, "detail": "User successfully created. Check your email for confirmation."}
 
 
@@ -46,6 +46,8 @@ async def login(body: OAuth2PasswordRequestForm = Depends(),
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_EMAIL)
     if not user.confirmed:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.NOT_CONFIRMED_EMAIL)
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=messages.INACTIVE_USER)
     if not await auth_service.verify_password(body.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_PASSWORD)
 

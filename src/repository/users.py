@@ -1,4 +1,6 @@
-from fastapi import Depends, Header, HTTPException
+import uuid
+
+from fastapi import Depends
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from libgravatar import Gravatar
@@ -8,7 +10,7 @@ from src.models.models import User, Role, BlackList
 from src.schemas.user import UserCreateSchema
 
 
-async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)) -> User | None:
+async def get_user_by_id(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> User | None:
     query = select(User).filter_by(id=user_id)
     user = await db.execute(query)
     return user.scalar_one_or_none()

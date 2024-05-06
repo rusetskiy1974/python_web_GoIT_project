@@ -5,7 +5,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.db import get_db
-from src.routes import auth, users, images, transform, comments, admin
+from src.routes import auth, users, images, transform, admin, comments
+
 
 app = FastAPI(title="PhotoShare")
 
@@ -13,8 +14,8 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(images.router, prefix="/api")
 app.include_router(transform.router, prefix="/api")
-app.include_router(comments.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(comments.router, prefix="/api")
 
 
 @app.get("/")

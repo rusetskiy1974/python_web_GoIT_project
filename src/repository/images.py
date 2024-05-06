@@ -26,18 +26,6 @@ async def get_images(query, db: AsyncSession):
     return images.unique().scalars().all()
 
 
-# Save file to uploads folder
-async def save_file_to_uploads(file, filename):
-    if not os.path.exists(settings.uploaded_files_path):
-        os.makedirs(settings.uploaded_files_path)
-    image_path = f'{settings.uploaded_files_path}{filename}'
-    with open(image_path, "wb") as uploaded_file:
-        file_content = await file.read()
-        uploaded_file.write(file_content)
-        uploaded_file.close()
-    return image_path
-
-
 # Get file size
 async def get_file_size(file):
     file_content = await file.read()
@@ -61,8 +49,6 @@ async def update_image_title(image: Image, title: str, db: AsyncSession):
     return image
 
 
-#
-#
 # Delete image from DB
 async def delete_image_from_db(image: Image, db: AsyncSession):
     await db.delete(image)
@@ -136,8 +122,6 @@ async def create_upload_image(user: User, db: AsyncSession, **kwargs):
 
 
 async def format_filename():
-    # filename, ext = os.path.splitext(file.filename)
-    # new_filename = f"{uuid4().hex}{ext}"
     new_filename = f"{uuid4().hex}"
     return new_filename
 
@@ -148,3 +132,9 @@ async def get_filename_from_cloudinary_url(cloudinary_url):
     # Останній елемент списку зазвичай є ім'ям файлу
     filename = parts[-1]
     return filename
+
+
+async def get_user_by_email(email: str, db: AsyncSession):
+    query = select(User).where(User.email == email)
+    user = await db.execute(query)
+    return user.unique().scalar_one_or_none()

@@ -9,3 +9,5 @@ EMAIL_ALREADY_CONFIRMED = "Your email is already confirmed"
 PASSWORDS_NOT_MATCH = "Your passwords do not match"
 TOKEN_REVOKED = "Token revoked"
 USER_UNAUTHORIZED = "User unauthorized"
+INACTIVE_USER = "Profile is blocked. Please contact the admin"
+ 
