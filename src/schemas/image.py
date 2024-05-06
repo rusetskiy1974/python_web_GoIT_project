@@ -1,12 +1,14 @@
-from typing import Optional, List
 from datetime import datetime
 from typing import Optional
 
 from fastapi import Form, Path
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
-from src.models.models import Tag
-from src.schemas.user import UserDbSchema, UserReadSchema
+from src.schemas.user import UserReadSchema
+
+
+class TagSchema(BaseModel):
+    name: str
 
 
 class ImageReadSchema(BaseModel):
@@ -16,6 +18,7 @@ class ImageReadSchema(BaseModel):
     title: str
     created_at: datetime
     count_tags: Optional[int] = 0
+    tags: list[TagSchema]
     owner: UserReadSchema
 
     model_config = ConfigDict(from_attributes=True)

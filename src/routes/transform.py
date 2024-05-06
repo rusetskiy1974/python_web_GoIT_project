@@ -3,9 +3,6 @@ import cloudinary
 import cloudinary.uploader
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
-import requests
-from PIL import Image
 from io import BytesIO
 
 from src.database.db import get_db
@@ -28,8 +25,7 @@ transform_list = list(TRANSFORM_METHOD.keys())
 async def create_transformed_image(body: TransformedImageRequest = Depends(),
                                    user: User = Depends(auth_service.get_current_user),
                                    db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=body.image_id)
-    image = await repository_images.get_image(query, db)
+    image = await repository_images.get_image(body.image_id, db)
     if image:
         response = requests.get(image.path, stream=True)
         if response.status_code == 200:
@@ -42,7 +38,7 @@ async def create_transformed_image(body: TransformedImageRequest = Depends(),
             new_name = await repository_images.format_filename()
             r = cloudinary.uploader.upload(transformed_image, public_id=f'PhotoShareApp/{new_name}')
             image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}')
-            image = await repository_images.create_upload_image(size=image.size,
+            image = await repository_images.create_image(size=image.size,
                                                                 image_path=image_path.url,
                                                                 title=f"{image.title} {body.method}",
                                                                 user=user,

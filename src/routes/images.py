@@ -1,13 +1,10 @@
-import io
-import os
 from typing import Optional, List
 
 import cloudinary
 import cloudinary.uploader
 import requests
 
-from fastapi import UploadFile, APIRouter, HTTPException, status, Depends, File, Response, Form, Query, Path, Request
-from sqlalchemy import select
+from fastapi import UploadFile, APIRouter, HTTPException, status, Depends, File, Form, Query, Path, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import StreamingResponse
 
@@ -21,8 +18,6 @@ from src.services.role import RoleAccess
 
 router = APIRouter(prefix='/images', tags=['image'])
 
-
-
 cloudinary.config(
     cloud_name=settings.cloudinary_name,
     api_key=settings.cloudinary_api_key,
@@ -31,38 +26,49 @@ cloudinary.config(
 )
 
 
-@router.get('/tag', response_model=List[ImageReadSchema])
-async def get_images_by_tag(tag_name: str = Query(description="Input tag", min_length=3, max_length=50),
+@router.get('/tag/{tag}', response_model=List[ImageReadSchema], status_code=status.HTTP_200_OK)
+async def get_images_by_tag(tag: str = Path(description="Input tag", min_length=3, max_length=50),
                             limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
                             db: AsyncSession = Depends(get_db)):
-    images = await repository_images.get_images_by_tag(tag_name, limit, offset, db)
+    images = await repository_images.get_images_by_tag(tag, limit, offset, db)
     if not images:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="TAG NOT EXISTS")
     return images
 
 
-@router.post('/add_tag/{image_id}', response_model=ImageReadSchema)
+@router.post('/{image_id}/tag/{tag}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
 async def add_tag_to_image(image_id: int = Path(ge=1),
-                           tag_name: str = Query(description="Input tag", min_length=3, max_length=50),
+                           tag: str = Path(description="Input tag", min_length=3, max_length=50),
                            db: AsyncSession = Depends(get_db)):
-    result = await repository_images.add_tag_to_image(image_id, tag_name, db)
+    result = await repository_images.add_tag_to_image(image_id, tag, db)
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="IMAGE NOT EXISTS")
     return result
 
 
-@router.get('/all', response_model=List[ImageReadSchema])
-async def get_images(limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
-                     db: AsyncSession = Depends(get_db)):
-    query = select(Image).offset(offset).limit(limit)
-    images = await repository_images.get_images(query, db)
+@router.delete('/{image_id}/tag/{tag}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
+async def delete_tag_from_image(
+        image_id: int = Path(ge=1),
+        tag: str = Path(description="Input tag to delete", min_length=3, max_length=50),
+        db: AsyncSession = Depends(get_db)
+):
+    result = await repository_images.delete_tag_from_image(image_id, tag.strip(), db)
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="IMAGE NOT EXISTS")
+    return result
+
+
+@router.get('/all', response_model=List[ImageReadSchema], status_code=status.HTTP_200_OK)
+async def get_all_images(limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
+                         db: AsyncSession = Depends(get_db)):
+    images = await repository_images.get_images(limit, offset, db)
     if not images:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT FOUND")
     return images
 
 
-@router.post("/upload", response_model=ImageReadSchema, status_code=status.HTTP_201_CREATED)
-async def upload_image(file: UploadFile = File(..., description="The image file to upload"),
+@router.post("/", response_model=ImageReadSchema, status_code=status.HTTP_201_CREATED)
+async def create_image(file: UploadFile = File(..., description="The image file to upload"),
                        title: str = Form(min_length=3, max_length=50),
                        tag: Optional[str] = None,
                        user: User = Depends(auth_service.get_current_user),
@@ -75,21 +81,26 @@ async def upload_image(file: UploadFile = File(..., description="The image file 
                             detail=f"File too large. Max size is {settings.max_image_size} bytes")
     if not file_is_valid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"File is not an image. Only images are allowed")
+                            detail="File is not an image. Only images are allowed")
 
     r = cloudinary.uploader.upload(file.file, public_id=f'PhotoShareApp/{new_name}', overwrite=True)
-    print(r)
     image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}')
-    image = await repository_images.create_upload_image(size=size_is_valid, image_path=image_path.url, title=title,
-                                                        tag=tag, user=user, db=db)
-
+    image = await repository_images.create_image(size=size_is_valid, image_path=image_path.url, title=title,
+                                                 tag=tag, user=user, db=db)
     return image
 
 
-@router.get('/get_image/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
-async def download_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id)
-    image = await repository_images.get_image(query, db)
+@router.get('/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
+async def get_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
+    image = await repository_images.get_image(image_id, db)
+    if not image:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT FOUND")
+    return image
+
+
+@router.get('/download/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
+async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
+    image = await repository_images.get_image(image_id, db)
     if image:
         response = requests.get(image.path, stream=True)
         if response.status_code == 200:
@@ -102,12 +113,11 @@ async def download_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
 
-@router.delete('/delete/{image_id}', status_code=status.HTTP_204_NO_CONTENT)
+@router.delete('/{image_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_image(image_id: int = Path(ge=1),
                        user: User = Depends(auth_service.get_current_user),
                        db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=image_id).filter_by(user_id=user.id)
-    image = await repository_images.get_image(query, db)
+    image = await repository_images.get_user_image(image_id, user, db)
 
     if image:
         image_name = await repository_images.get_filename_from_cloudinary_url(image.path)
@@ -115,7 +125,7 @@ async def delete_image(image_id: int = Path(ge=1),
         if response.status_code == 200:
             cloudinary.uploader.destroy(f'PhotoShareApp/{image_name}')
             await repository_images.delete_image_from_db(image, db)
-            return {'ditail': f'Image successfully deleted'}
+            return {'ditail': 'Image successfully deleted'}
         else:
             await repository_images.delete_image_from_db(image, db)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
@@ -123,25 +133,24 @@ async def delete_image(image_id: int = Path(ge=1),
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
 
-@router.put('/update/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
-async def update_image(body: ImageUpdateSchema = Depends(),
+@router.put('/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
+async def update_image(image_id: int = Path(ge=1),
+                       title: str = Form(min_length=3, max_length=50),
                        user: User = Depends(auth_service.get_current_user),
                        db: AsyncSession = Depends(get_db)):
-    query = select(Image).filter_by(id=body.image_id).filter_by(user_id=user.id)
-    image = await repository_images.get_image(query, db)
-    if image:
-        image = await repository_images.update_image_title(image, body.title, db)
-        return image
-    else:
+    image = await repository_images.get_user_image(image_id, user, db)
+    if not image:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
+    image = await repository_images.update_image_title(image, title, db)
+    return image
 
-@router.get('/', response_model=list[ImageReadSchema])
+
+@router.get('/', response_model=list[ImageReadSchema], status_code=status.HTTP_200_OK)
 async def get_images_by_user(limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
                              db: AsyncSession = Depends(get_db),
                              user: User = Depends(auth_service.get_current_user)):
-    query = select(Image).filter_by(user_id=user.id).offset(offset).limit(limit)
-    images = await repository_images.get_images(query, db)
+    images = await repository_images.get_user_images(limit, offset, user, db)
     if not images:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT FOUND")
     return images
