@@ -67,12 +67,12 @@ async def get_all_images(limit: int = Query(10, ge=10, le=500), offset: int = Qu
 
 
 @router.post("/", response_model=ImageReadSchema, status_code=status.HTTP_201_CREATED)
-async def cteate_image(file: UploadFile = File(..., description="The image file to upload"),
+async def create_image(file: UploadFile = File(..., description="The image file to upload"),
                        title: str = Form(min_length=3, max_length=50),
                        tag: Optional[str] = None,
                        user: User = Depends(auth_service.get_current_user),
                        db: AsyncSession = Depends(get_db)):
-    new_name = await repository_images.format_filename(file)
+    new_name = await repository_images.format_filename()
     size_is_valid = await repository_images.get_file_size(file)
     file_is_valid = await repository_images.file_is_image(file)
     if size_is_valid > settings.max_image_size:
@@ -123,6 +123,7 @@ async def delete_image(image_id: int = Path(ge=1),
         response = requests.get(image.path, stream=True)
         if response.status_code == 200:
             cloudinary.uploader.destroy(f'PhotoShareApp/{image_name}')
+            await repository_images.delete_image_from_db(image, db)
             return {'ditail': 'Image successfully deleted'}
         else:
             await repository_images.delete_image_from_db(image, db)
@@ -148,7 +149,7 @@ async def update_image(image_id: int = Path(ge=1),
 async def get_images_by_user(limit: int = Query(10, ge=10, le=500), offset: int = Query(0, ge=0),
                              db: AsyncSession = Depends(get_db),
                              user: User = Depends(auth_service.get_current_user)):
-    images = await repository_images.get_images(limit, offset, user, db)
+    images = await repository_images.get_user_images(limit, offset, user, db)
     if not images:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT FOUND")
     return images

@@ -46,18 +46,6 @@ async def get_tag(tag_name: str, db: AsyncSession):
     return result.unique().scalar_one_or_none()
 
 
-# Save file to uploads folder
-async def save_file_to_uploads(file, filename):
-    if not os.path.exists(settings.uploaded_files_path):
-        os.makedirs(settings.uploaded_files_path)
-    image_path = f"{settings.uploaded_files_path}{filename}"
-    with open(image_path, "wb") as uploaded_file:
-        file_content = await file.read()
-        uploaded_file.write(file_content)
-        uploaded_file.close()
-    return image_path
-
-
 # Get file size
 async def get_file_size(file):
     file_content = await file.read()
@@ -88,7 +76,7 @@ async def delete_image_from_db(image: Image, db: AsyncSession):
 
 
 async def get_images_by_tag(tag_name: str, limit: int, offset: int, db: AsyncSession):
-    query = select(Tag).filter_by(tag=tag_name)
+    query = select(Tag).filter_by(name=tag_name)
     tag = await db.execute(query)
     tag = tag.unique().scalar_one_or_none()
     if tag:
@@ -144,6 +132,11 @@ async def delete_tag_from_image(image_id: int, tag_name: str, db: AsyncSession):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"No tag: {tag_name} on this image",
             )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No image with id: {image_id}",
+        )
 
 
 async def create_tag(tag_name: str, db: AsyncSession):
@@ -174,9 +167,7 @@ async def create_image(tag: str | None, user: User, db: AsyncSession, **kwargs):
     return new_image
 
 
-async def format_filename(file):
-    filename, ext = os.path.splitext(file.filename)
-    # new_filename = f"{uuid4().hex}{ext}"
+async def format_filename():
     new_filename = f"{uuid4().hex}"
     return new_filename
 
@@ -184,6 +175,6 @@ async def format_filename(file):
 async def get_filename_from_cloudinary_url(cloudinary_url):
     # Розділіть URL за допомогою /
     parts = cloudinary_url.split("/")
-    # Останній елемент списку зазвичай є ім'ям файлу
+    # Останній елемент списку є ім'ям файлу
     filename = parts[-1]
     return filename
