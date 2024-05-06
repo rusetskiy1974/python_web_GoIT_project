@@ -18,8 +18,6 @@ from src.services.role import RoleAccess
 
 router = APIRouter(prefix='/images', tags=['image'])
 
-
-
 cloudinary.config(
     cloud_name=settings.cloudinary_name,
     api_key=settings.cloudinary_api_key,
@@ -50,9 +48,9 @@ async def add_tag_to_image(image_id: int = Path(ge=1),
 
 @router.delete('/{image_id}/tag/{tag}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
 async def delete_tag_from_image(
-    image_id: int = Path(ge=1),
-    tag: str = Path(description="Input tag to delete", min_length=3, max_length=50),
-    db: AsyncSession = Depends(get_db)
+        image_id: int = Path(ge=1),
+        tag: str = Path(description="Input tag to delete", min_length=3, max_length=50),
+        db: AsyncSession = Depends(get_db)
 ):
     result = await repository_images.delete_tag_from_image(image_id, tag.strip(), db)
     if not result:
@@ -88,7 +86,7 @@ async def create_image(file: UploadFile = File(..., description="The image file 
     r = cloudinary.uploader.upload(file.file, public_id=f'PhotoShareApp/{new_name}', overwrite=True)
     image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}')
     image = await repository_images.create_image(size=size_is_valid, image_path=image_path.url, title=title,
-                                                        tag=tag, user=user, db=db)
+                                                 tag=tag, user=user, db=db)
     return image
 
 

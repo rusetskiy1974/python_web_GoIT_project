@@ -152,7 +152,7 @@ async def create_tag(tag_name: str, db: AsyncSession):
     return tag
 
 
-async def create_upload_image(user: User, db: AsyncSession, **kwargs):
+async def create_image(user: User, db: AsyncSession, **kwargs):
     data = ImageCreateSchema(title=kwargs['title'], path=kwargs['image_path'])
     new_image = Image(**data.model_dump(exclude_unset=True), size=kwargs['size'], user_id=user.id)
 
