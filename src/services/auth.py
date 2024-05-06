@@ -79,7 +79,7 @@ class Auth:
                     if logout_token is not None:
                         expiration_time = await self.get_token_expiration_time(logout_token.token)     #datetime.utcfromtimestamp(payload['exp'])
                         if expiration_time and (expiration_time > datetime.utcnow()):
-                            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked")
+                            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is logged out")
                         else:
                             await repository_users.clear_black_list_token(email, db)
                             raise credentials_exception

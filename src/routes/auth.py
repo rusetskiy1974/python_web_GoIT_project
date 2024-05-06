@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Security, Request, BackgroundTasks, Query, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Security, Request, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm, HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,7 +72,6 @@ async def logout(access_token: str = Depends(auth_service.get_user_access_token)
                  user: User = Depends(auth_service.get_current_user),
                  db: AsyncSession = Depends(get_db)) -> dict:
 
-    print(access_token)
     await repository_users.save_token_to_blacklist(user, access_token, db)
     return {"message": "Logout successful."}
 
