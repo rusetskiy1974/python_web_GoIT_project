@@ -31,7 +31,8 @@ async def get_db():
         yield session
 
 
-sessionmanager = DatabaseSessionManager(settings.db_local_url)
+sessionmanager = DatabaseSessionManager(settings.db_url)
 
-db_redis = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=0, encoding="utf-8",
+db_redis = redis.Redis(host=settings.redis_host, port=settings.redis_port,
+                       db=0, password=settings.redis_password, encoding="utf-8",
                        decode_responses=True)
