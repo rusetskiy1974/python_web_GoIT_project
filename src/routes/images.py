@@ -159,7 +159,7 @@ async def create_image(file: UploadFile = File(..., description="The image file 
                             detail="File is not an image. Only images are allowed")
 
     r = cloudinary.uploader.upload(file.file, public_id=f'PhotoShareApp/{new_name}', overwrite=True)
-    image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}')
+    image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}', version=r.get('version'))
     image = await repository_images.create_image(size=size_is_valid, image_path=image_path.url, title=title,
                                                  tag=tag, user=user, db=db)
     return image
