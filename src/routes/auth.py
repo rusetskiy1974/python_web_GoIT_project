@@ -1,5 +1,4 @@
 import secrets
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Security, Request, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm, HTTPAuthorizationCredentials, HTTPBearer
@@ -8,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.db import get_db
 from src.models.models import User
 from src.repository import users as repository_users
-from src.schemas.user import UserCreateSchema, UserUpdateSchema, TokenSchema, \
-    UserResponseSchema, RequestEmail, ConfirmationResponse, LogoutResponseSchema
+from src.schemas.user import UserCreateSchema, TokenSchema, UserResponseSchema, RequestEmail, ConfirmationResponse, \
+    LogoutResponseSchema
 from src.services.auth import auth_service
 from src.services.email import send_email
 from src.conf import messages

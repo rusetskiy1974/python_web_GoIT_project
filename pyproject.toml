@@ -26,7 +26,12 @@ requests = "^2.31.0"
 uploadview = "^0.2.7"
 qrcode = "^7.4.2"
 pillow = "^10.3.0"
+redis = "^5.0.4"
+asyncio-redis = "^0.16.0"
 
+
+[tool.poetry.group.dev.dependencies]
+sphinx = "^7.3.7"
 
 [build-system]
 requires = ["poetry-core"]

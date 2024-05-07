@@ -1,4 +1,5 @@
 import contextlib
+import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
 from src.conf.config import settings
@@ -32,3 +33,5 @@ async def get_db():
 
 sessionmanager = DatabaseSessionManager(settings.db_local_url)
 
+db_redis = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=0, encoding="utf-8",
+                       decode_responses=True)

@@ -1,9 +1,7 @@
-from datetime import date, timedelta
 
-from sqlalchemy import select, or_, and_, extract
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.schemas.comments import CommentCreateSchema, CommentResponseShema
 from src.models.models import User, Comment, Image
 
 
@@ -14,8 +12,7 @@ async def create_comment(image_id: int,
     stmt = select(Image).filter_by(id=image_id)
     result = await db.execute(stmt)
     image_exist = result.unique().scalar_one_or_none()
-    if image_exist == None:
-        print('------------------')
+    if image_exist is None:
         return None
     comment = Comment(
         text=text,
@@ -25,9 +22,9 @@ async def create_comment(image_id: int,
     try:
         await db.commit()
         await db.refresh(comment)
-        print(comment.id)
         return comment
     except Exception as err:
+        print(err)
         return None
 
 

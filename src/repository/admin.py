@@ -1,4 +1,3 @@
-
 from sqlalchemy import select
 from src.models.models import User, Role, Comment
 from sqlalchemy.ext.asyncio import AsyncSession
