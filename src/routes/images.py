@@ -182,7 +182,7 @@ async def get_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_d
     return image
 
 
-@router.get('/download/{image_id}', status_code=status.HTTP_200_OK)
+@router.get('/download/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
 async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
     """
     The download_picture function downloads a picture from the database.
@@ -201,9 +201,9 @@ async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depend
             image_bytes = response.content
             image_show = Image.open(BytesIO(image_bytes))
             image_show.show()
-            return image
-            # return StreamingResponse(response.iter_content(chunk_size=1024),
-            #                 media_type=response.headers['content-type'])
+            # return image
+            return StreamingResponse(response.iter_content(chunk_size=1024),
+                            media_type=response.headers['content-type'])
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
     else:

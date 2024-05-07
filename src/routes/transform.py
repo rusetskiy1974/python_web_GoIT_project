@@ -21,7 +21,7 @@ router = APIRouter(prefix='/cloudinary_transform', tags=['cloudinary_transform']
 transform_list = list(TRANSFORM_METHOD.keys())
 
 
-@router.post('/{image_id}', description='No more than 5 requests per minute',
+@router.post('/{image_id}',response_model=ImageReadSchema, description='No more than 5 requests per minute',
              dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def create_transformed_image(body: TransformedImageRequest = Depends(),
                                    user: User = Depends(auth_service.get_current_user),
@@ -51,7 +51,7 @@ async def create_transformed_image(body: TransformedImageRequest = Depends(),
                                                                                body.method])
             new_name = await repository_images.format_filename()
             r = cloudinary.uploader.upload(transformed_image, public_id=f'PhotoShareApp/{new_name}')
-            image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}', version=r.get("version"))
+            image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}')
             image = await repository_images.create_image(size=image.size,
                                                          image_path=image_path.url,
                                                          title=f"{image.title} {body.method}",
@@ -60,8 +60,8 @@ async def create_transformed_image(body: TransformedImageRequest = Depends(),
                                                          db=db)
 
             qr_code = await repository_transform.generate_qr_code(transformed_image)
-
-            return qr_code.show()
+            qr_code.show()
+            return image
 
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
