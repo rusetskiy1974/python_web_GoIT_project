@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, Integer, ForeignKey, DateTime, func, Column, Boolean, Enum, CheckConstraint, UUID, Text
+from sqlalchemy import Float, String, Integer, ForeignKey, DateTime, func, Column, Boolean, Enum, CheckConstraint, UUID, Text
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 
@@ -59,6 +59,7 @@ class Image(Base):
     owner = relationship("User", back_populates="images", lazy="joined")
     tags = relationship("Tag", secondary="image_to_tag", back_populates="images", lazy="joined")
     comments = relationship("Comment", back_populates="image")
+    average_rating = Column(Float, default=0.0)
 
 
 class Tag(Base):
@@ -91,3 +92,13 @@ class BlackList(Base):
     email = Column(String(320), unique=True, index=True, nullable=False)
 
 
+class ImageRating(Base):
+    __tablename__ = "image_ratings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    image_id = Column(Integer, ForeignKey("images.id"))
+    rating = Column(Integer)
+
+    user = relationship("User", back_populates="ratings")
+    image = relationship("Image", back_populates="ratings")
