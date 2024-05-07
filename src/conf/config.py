@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     redis_host: str
     redis_local_host: str = 'localhost'
     redis_port: int = '6379'
+    redis_password: str
     cloudinary_name: str
     cloudinary_api_key: str
     cloudinary_api_secret: str
@@ -29,7 +30,7 @@ class Settings(BaseSettings):
     max_image_size: int
     max_add_tags: int
 
-    model_config = ConfigDict(extra='ignore', env_file=".env", env_file_encoding="utf-8")
+    model_config = ConfigDict(extra='ignore', env_file="../../env", env_file_encoding="utf-8")
 
 
 settings = Settings()

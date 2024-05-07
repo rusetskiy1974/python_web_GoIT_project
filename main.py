@@ -1,16 +1,17 @@
 import asyncio
-from typing import Callable
-
 import uvicorn
 
-from fastapi import FastAPI, HTTPException, Depends, Request, BackgroundTasks
+from typing import Callable
+
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi_limiter import FastAPILimiter
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
-from src.database.db import get_db
+from src.database.db import get_db, db_redis
 from src.routes import auth, users, images, transform, admin, comments
 from src.routes.auth import blacklisted_tokens
 from src.utils.utils import periodic_clean_blacklist
@@ -22,6 +23,16 @@ origins = ['*']
 
 @app.middleware("http")
 async def block_blacklisted_tokens(request: Request, call_next: Callable):
+    """
+    The block_blacklisted_tokens function is a middleware function that checks if the access token in the Authorization
+    header of an incoming request is blacklisted. If it is, then this function returns a 401 Unauthorized response.
+    Otherwise, it passes control to the next handler.
+
+    :param request: Request: Access the request object
+    :param call_next: Callable: Pass the request to the next middleware in line
+    :return: The result of calling the next handler in the chain
+    :doc-author: RSA
+    """
     authorization_header = request.headers.get("Authorization")
     if authorization_header is None:
         # Якщо відсутній заголовок "Authorization", пропустити до наступного обробника
@@ -49,6 +60,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
+    r = await db_redis
+    await FastAPILimiter.init(r)
     asyncio.create_task(periodic_clean_blacklist(4))
 
 
