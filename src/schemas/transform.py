@@ -14,6 +14,3 @@ class TransformedImageRequest(BaseModel):
     image_id: int = Path(..., ge=1),
     method: Literal[method_list] = Query(...)  # type: ignore
 
-
-class TransformedImageResponse(BaseModel):
-    qr_code_url: str
