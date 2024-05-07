@@ -23,6 +23,16 @@ origins = ['*']
 
 @app.middleware("http")
 async def block_blacklisted_tokens(request: Request, call_next: Callable):
+    """
+    The block_blacklisted_tokens function is a middleware function that checks if the access token in the Authorization
+    header of an incoming request is blacklisted. If it is, then this function returns a 401 Unauthorized response.
+    Otherwise, it passes control to the next handler.
+
+    :param request: Request: Access the request object
+    :param call_next: Callable: Pass the request to the next middleware in line
+    :return: The result of calling the next handler in the chain
+    :doc-author: RSA
+    """
     authorization_header = request.headers.get("Authorization")
     if authorization_header is None:
         # Якщо відсутній заголовок "Authorization", пропустити до наступного обробника
