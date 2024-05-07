@@ -60,8 +60,8 @@ async def create_transformed_image(body: TransformedImageRequest = Depends(),
                                                          db=db)
 
             qr_code = await repository_transform.generate_qr_code(transformed_image)
-            qr_code.show()
-            return image
+
+            return qr_code.show()
 
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
