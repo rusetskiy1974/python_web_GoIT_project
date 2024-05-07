@@ -22,7 +22,7 @@ router = APIRouter(prefix='/cloudinary_transform', tags=['cloudinary_transform']
 transform_list = list(TRANSFORM_METHOD.keys())
 
 
-@router.post('/{image_id}', description='No more than 5 requests per minute',
+@router.post('/{image_id}', response_model=ImageReadSchema, description='No more than 5 requests per minute',
              dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def create_transformed_image(body: TransformedImageRequest = Depends(),
                                    user: User = Depends(auth_service.get_current_user),
@@ -62,7 +62,8 @@ async def create_transformed_image(body: TransformedImageRequest = Depends(),
 
             qr_code = await repository_transform.generate_qr_code(transformed_image)
             qr_code.save("qr_code.png")
-            return FileResponse("qr_code.png")
+            FileResponse("qr_code.png")
+            return image
 
             # return image
 
