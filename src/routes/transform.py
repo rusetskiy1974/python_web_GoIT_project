@@ -1,7 +1,9 @@
+import base64
+
 import cloudinary
 import cloudinary.uploader
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from io import BytesIO
 
 from fastapi_limiter.depends import RateLimiter
@@ -22,7 +24,7 @@ router = APIRouter(prefix='/cloudinary_transform', tags=['cloudinary_transform']
 transform_list = list(TRANSFORM_METHOD.keys())
 
 
-@router.post('/{image_id}', response_model=TransformedImageResponse, description='No more than 5 requests per minute',
+@router.post('/{image_id}', description='No more than 5 requests per minute',
              dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def create_transformed_image(body: TransformedImageRequest = Depends(),
                                    user: User = Depends(auth_service.get_current_user),
@@ -63,11 +65,14 @@ async def create_transformed_image(body: TransformedImageRequest = Depends(),
             response = requests.get(transformed_image, stream=True)
 
             qr_code = await repository_transform.generate_qr_code(transformed_image)
+            print(qr_code)
+            headers = {"Content-Type": "image/png"}
             qr_image_bytes_io = BytesIO()
             qr_code.save(qr_image_bytes_io, format="PNG")
             qr_image_bytes_io.seek(0)
 
-            return StreamingResponse(qr_image_bytes_io, media_type="image/png")
+            # return StreamingResponse(qr_image_bytes_io, media_type="image/png")
+            return Response(content=qr_image_bytes_io.getvalue(), media_type="image/png")
 
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")

@@ -1,10 +1,12 @@
+from io import BytesIO
 from typing import Optional, List
 
 import cloudinary
 import cloudinary.uploader
 import requests
+from PIL import Image
 
-from fastapi import UploadFile, APIRouter, HTTPException, status, Depends, File, Form, Query, Path
+from fastapi import UploadFile, APIRouter, HTTPException, status, Depends, File, Form, Query, Path, Response
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import StreamingResponse
@@ -196,9 +198,12 @@ async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depend
     if image:
         response = requests.get(image.path, stream=True)
         if response.status_code == 200:
-            # return image
-            return StreamingResponse(response.iter_content(chunk_size=1024),
-                                     media_type=response.headers['content-type'])
+            image_bytes = response.content
+            image_show = Image.open(BytesIO(image_bytes))
+            image_show.show()
+            return image
+            # return StreamingResponse(response.iter_content(chunk_size=1024),
+            #                 media_type=response.headers['content-type'])
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
     else:
