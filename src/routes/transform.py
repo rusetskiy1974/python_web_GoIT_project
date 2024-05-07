@@ -5,6 +5,7 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import FileResponse
 
 from src.database.db import get_db
 from src.models.models import User
@@ -21,7 +22,7 @@ router = APIRouter(prefix='/cloudinary_transform', tags=['cloudinary_transform']
 transform_list = list(TRANSFORM_METHOD.keys())
 
 
-@router.post('/{image_id}',response_model=ImageReadSchema, description='No more than 5 requests per minute',
+@router.post('/{image_id}', description='No more than 5 requests per minute',
              dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def create_transformed_image(body: TransformedImageRequest = Depends(),
                                    user: User = Depends(auth_service.get_current_user),
@@ -60,8 +61,10 @@ async def create_transformed_image(body: TransformedImageRequest = Depends(),
                                                          db=db)
 
             qr_code = await repository_transform.generate_qr_code(transformed_image)
-            qr_code.show()
-            return image
+            qr_code.save("qr_code.png")
+            return FileResponse("qr_code.png")
+
+            # return image
 
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
