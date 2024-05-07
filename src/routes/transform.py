@@ -27,6 +27,19 @@ transform_list = list(TRANSFORM_METHOD.keys())
 async def create_transformed_image(body: TransformedImageRequest = Depends(),
                                    user: User = Depends(auth_service.get_current_user),
                                    db: AsyncSession = Depends(get_db)):
+    """
+    The create_transformed_image function is used to create a transformed image.
+    The function takes in the following parameters:
+        body: TransformedImageRequest = Depends(),
+        user: User = Depends(auth_service.get_current_user),
+        db: AsyncSession = Depends(get_db)
+
+    :param body: TransformedImageRequest: Get the image_id and method from the request
+    :param user: User: Get the current user from the database
+    :param db: AsyncSession: Get the database session
+    :return: A streaming response of the qr code, which is then displayed in the browser
+    :doc-author: RSA
+    """
     image = await repository_images.get_image(body.image_id, db)
     if image:
         response = requests.get(image.path, stream=True)
