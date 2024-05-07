@@ -182,7 +182,7 @@ async def get_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_d
     return image
 
 
-@router.get('/download/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
+@router.get('/download/{image_id}', status_code=status.HTTP_200_OK)
 async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
     """
     The download_picture function downloads a picture from the database.
