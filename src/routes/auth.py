@@ -16,6 +16,8 @@ from src.conf import messages
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+blacklisted_tokens = set()
+
 get_refresh_token = HTTPBearer()
 
 
@@ -51,16 +53,6 @@ async def login(body: OAuth2PasswordRequestForm = Depends(),
     if not await auth_service.verify_password(body.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_PASSWORD)
 
-    access_token_blacklist = await repository_users.find_black_list_token(user.email, db)
-
-    if access_token_blacklist is not None:
-        expiration_time = await auth_service.get_token_expiration_time(access_token_blacklist.token)
-        if expiration_time and (expiration_time > datetime.utcnow()):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.TOKEN_REVOKED)
-
-        else:
-            await repository_users.clear_black_list_token(user.email, db)
-
     access_token = await auth_service.create_access_token(data={"sub": user.email})
     refresh_token_ = await auth_service.create_refresh_token(data={"sub": user.email})
     await repository_users.update_token(user, refresh_token_, db)
@@ -71,8 +63,9 @@ async def login(body: OAuth2PasswordRequestForm = Depends(),
 async def logout(access_token: str = Depends(auth_service.get_user_access_token),
                  user: User = Depends(auth_service.get_current_user),
                  db: AsyncSession = Depends(get_db)) -> dict:
-
-    await repository_users.save_token_to_blacklist(user, access_token, db)
+    blacklisted_tokens.add(access_token)
+    user.refresh_token = None
+    await db.commit()
     return {"message": "Logout successful."}
 
 
