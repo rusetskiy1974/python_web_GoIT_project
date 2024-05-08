@@ -162,7 +162,7 @@ async def create_image(file: UploadFile = File(..., description="The image file 
     return image
 
 
-@router.get('/{image_id}', status_code=status.HTTP_200_OK)
+@router.get('/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
 async def get_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
     """
     The get_image function returns an image with the given ID.
