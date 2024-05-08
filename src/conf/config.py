@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     mail_port: int
     mail_server: str
     redis_host: str
-    redis_local_host: str = 'localhost'
+    redis_host: str = 'localhost'
     redis_port: int = '6379'
     redis_password: str
     cloudinary_name: str

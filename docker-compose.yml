@@ -1,6 +1,5 @@
 version: '3.9'
 
-
 services:
   redis_server:
     container_name: redis_web
@@ -11,34 +10,34 @@ services:
     ports:
       - ${REDIS_PORT}:${REDIS_PORT}
 
-#  postgres:
-#    image: postgres
-#    environment:
-#      POSTGRES_DB: ${DB_NAME}
-#      POSTGRES_USER: ${DB_USER}
-#      POSTGRES_PASSWORD: ${DB_PASSWORD}
-#    ports:
-#      - "5432:5432"
-#
-#  web:
-#    build: .
-#    environment:
-#      DB_URL: ${DB_URL}
-#      SECRET_KEY: ${SECRET_KEY}
-#      ALGORITHM: ${ALGORITHM}
-#      MAIL_USERNAME: ${MAIL_USERNAME}
-#      MAIL_PASSWORD: ${MAIL_PASSWORD}
-#      MAIL_FROM: ${MAIL_FROM}
-#      MAIL_PORT: ${MAIL_PORT}
-#      MAIL_SERVER: ${MAIL_SERVER}
-#      REDIS_HOST: ${REDIS_HOST}
-#      REDIS_PORT: ${REDIS_PORT}
-#      CLOUDINARY_NAME: ${CLOUDINARY_NAME}
-#      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
-#      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
-#      MAX_IMAGE_SIZE: ${MAX_IMAGE_SIZE}
-#      MAX_ADD_TAGS: ${MAX_ADD_TAGS}
-#    ports:
-#      - "8000:8000"
-#    depends_on:
-#      - postgres
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    environment:
+      DB_URL: ${DB_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_SERVER: ${MAIL_SERVER}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      CLOUDINARY_NAME: ${CLOUDINARY_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      MAX_IMAGE_SIZE: ${MAX_IMAGE_SIZE}
+      MAX_ADD_TAGS: ${MAX_ADD_TAGS}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres

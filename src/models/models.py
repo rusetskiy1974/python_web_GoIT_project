@@ -33,6 +33,7 @@ class User(Base):
     is_active = Column(Boolean, default=False)
     images = relationship("Image", back_populates="owner")
     comments = relationship("Comment", back_populates="user")
+    ratings = relationship("ImageRating", back_populates="user")
 
     @hybrid_property
     def fullname(self):
@@ -56,10 +57,11 @@ class Image(Base):
     created_at = Column(DateTime, default=func.now())
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     count_tags = Column(Integer, default=0, nullable=False)
+    average_rating = Column(Float, default=0.0)
     owner = relationship("User", back_populates="images", lazy="joined")
     tags = relationship("Tag", secondary="image_to_tag", back_populates="images", lazy="joined")
     comments = relationship("Comment", back_populates="image")
-    average_rating = Column(Float, default=0.0)
+    ratings = relationship("ImageRating", back_populates="image")
 
 
 class Tag(Base):
@@ -96,7 +98,7 @@ class ImageRating(Base):
     __tablename__ = "image_ratings"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     image_id = Column(Integer, ForeignKey("images.id"))
     rating = Column(Integer)
 
