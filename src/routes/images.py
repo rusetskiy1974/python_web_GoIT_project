@@ -287,3 +287,4 @@ async def get_images_by_user(limit: int = Query(10, ge=10, le=500), offset: int 
     if not images:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT FOUND")
     return images
+
