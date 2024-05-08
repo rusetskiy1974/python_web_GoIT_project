@@ -179,35 +179,35 @@ async def get_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_d
     return image
 
 
-# @router.get('/download/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
-# async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
-#     """
-#     The download_picture function downloads a picture from the database.
-#         The function takes an image_id as input and returns the image if it exists in the database.
-#         If not, it raises a 404 error.
-#
-#     :param image_id: int: Specify the image id of the image that is to be downloaded
-#     :param db: AsyncSession: Pass the database session to the function
-#     :return: A streamingresponse object, which is a special type of response that allows
-#     :doc-author: RSA
-#     """
-#     image = await repository_images.get_image(image_id, db)
-#     if image:
-#         try:
-#             response = requests.get(image.path, stream=True)
-#             if response.status_code == 200:
-#                 image_bytes = response.content
-#                 image_show = Image.open(BytesIO(image_bytes))
-#                 image_show.save("image.png")
-#                 return FileResponse("image.png")
-#                 # return StreamingResponse(response.iter_content(chunk_size=1024),
-#                 #                 media_type=response.headers['content-type'])
-#             else:
-#                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-#         except Exception as e:
-#             print(e)
-#     else:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+@router.get('/download/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
+async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
+    """
+    The download_picture function downloads a picture from the database.
+        The function takes an image_id as input and returns the image if it exists in the database.
+        If not, it raises a 404 error.
+
+    :param image_id: int: Specify the image id of the image that is to be downloaded
+    :param db: AsyncSession: Pass the database session to the function
+    :return: A streamingresponse object, which is a special type of response that allows
+    :doc-author: RSA
+    """
+    image = await repository_images.get_image(image_id, db)
+    if image:
+        try:
+            response = requests.get(image.path, stream=True)
+            if response.status_code == 200:
+                image_bytes = response.content
+                image_show = Image.open(BytesIO(image_bytes))
+                image_show.save("image.png")
+                return FileResponse("image.png")
+                # return StreamingResponse(response.iter_content(chunk_size=1024),
+                #                 media_type=response.headers['content-type'])
+            else:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
 
 @router.delete('/{image_id}', status_code=status.HTTP_204_NO_CONTENT)
