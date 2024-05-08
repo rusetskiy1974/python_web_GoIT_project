@@ -4,14 +4,13 @@ import uvicorn
 from typing import Callable
 
 from fastapi import FastAPI, HTTPException, Depends, Request
-from fastapi_limiter import FastAPILimiter
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
-from src.database.db import get_db, db_redis
+from src.database.db import get_db
 from src.routes import auth, users, images, transform, admin, comments
 from src.routes.auth import blacklisted_tokens
 from src.utils.utils import periodic_clean_blacklist
@@ -60,9 +59,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    r = await db_redis
-    await FastAPILimiter.init(r)
-    asyncio.create_task(periodic_clean_blacklist(4))
+    asyncio.create_task(periodic_clean_blacklist(60))
 
 
 app.include_router(auth.router, prefix="/api")

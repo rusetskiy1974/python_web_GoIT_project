@@ -1,7 +1,6 @@
 import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
 from sqlalchemy.engine import Connection
 from sqlalchemy import pool
 
@@ -25,7 +24,7 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
-config.set_main_option("sqlalchemy.url", app_config.db_local_url)
+config.set_main_option("sqlalchemy.url", app_config.db_url)
 
 
 # other values from the config, defined by the needs of env.py,

@@ -111,12 +111,16 @@ async def admin_delete_image(body: ImageRequest = Depends(),
 
     if image:
         image_name = await repository_images.get_filename_from_cloudinary_url(image.path)
-        response = requests.get(image.path, stream=True)
-        if response.status_code == 200:
+        # response = requests.get(image.path, stream=True)
+        # if response.status_code == 200:
+        try:
             cloudinary.uploader.destroy(f'PhotoShareApp/{image_name}')
-        await repository_images.delete_image_from_db(image, db)
+            await repository_images.delete_image_from_db(image, db)
 
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+        except Exception:
+            await repository_images.delete_image_from_db(image, db)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
