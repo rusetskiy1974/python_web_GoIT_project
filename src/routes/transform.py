@@ -7,6 +7,7 @@ from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import FileResponse
 
+from src.conf.config import settings
 from src.database.db import get_db
 from src.models.models import User
 from src.repository import images as repository_images
@@ -39,6 +40,12 @@ async def create_transformed_image(body: TransformedImageRequest = Depends(),
     :return: A streaming response of the qr code, which is then displayed in the browser
     :doc-author: RSA
     """
+    cloudinary.config(
+        cloud_name=settings.cloudinary_name,
+        api_key=settings.cloudinary_api_key,
+        api_secret=settings.cloudinary_api_secret,
+        secure=True
+    )
     image = await repository_images.get_image(body.image_id, db)
     if image:
         response = requests.get(image.path, stream=True)

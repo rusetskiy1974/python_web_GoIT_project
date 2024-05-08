@@ -20,13 +20,6 @@ from src.services.role import RoleAccess
 
 router = APIRouter(prefix='/images', tags=['image'])
 
-cloudinary.config(
-    cloud_name=settings.cloudinary_name,
-    api_key=settings.cloudinary_api_key,
-    api_secret=settings.cloudinary_api_secret,
-    secure=True
-)
-
 
 @router.get('/tag/{tag}', response_model=List[ImageReadSchema], status_code=status.HTTP_200_OK)
 async def get_images_by_tag(tag: str = Path(description="Input tag", min_length=3, max_length=50),
@@ -146,6 +139,12 @@ async def create_image(file: UploadFile = File(..., description="The image file 
     :return: A dict with the image data
     :doc-author: RSA
     """
+    cloudinary.config(
+        cloud_name=settings.cloudinary_name,
+        api_key=settings.cloudinary_api_key,
+        api_secret=settings.cloudinary_api_secret,
+        secure=True
+    )
     new_name = await repository_images.format_filename()
     size_is_valid = await repository_images.get_file_size(file)
     file_is_valid = await repository_images.file_is_image(file)
@@ -223,6 +222,12 @@ async def delete_image(image_id: int = Path(ge=1),
     :return: A dictionary with the key &quot;detail&quot; and value &quot;image successfully deleted&quot;
     :doc-author: RSA
     """
+    cloudinary.config(
+        cloud_name=settings.cloudinary_name,
+        api_key=settings.cloudinary_api_key,
+        api_secret=settings.cloudinary_api_secret,
+        secure=True
+    )
     image = await repository_images.get_user_image(image_id, user, db)
 
     if image:
@@ -287,4 +292,3 @@ async def get_images_by_user(limit: int = Query(10, ge=10, le=500), offset: int 
     if not images:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT FOUND")
     return images
-
