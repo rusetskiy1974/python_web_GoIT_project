@@ -9,7 +9,7 @@ from PIL import Image
 from fastapi import UploadFile, APIRouter, HTTPException, status, Depends, File, Form, Query, Path, Response
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, FileResponse
 
 from src.database.db import get_db
 from src.models.models import User
@@ -165,7 +165,7 @@ async def create_image(file: UploadFile = File(..., description="The image file 
     return image
 
 
-@router.get('/{image_id}', response_model=ImageReadSchema, status_code=status.HTTP_200_OK)
+@router.get('/{image_id}', status_code=status.HTTP_200_OK)
 async def get_image(image_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):
     """
     The get_image function returns an image with the given ID.
@@ -200,8 +200,8 @@ async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depend
         if response.status_code == 200:
             image_bytes = response.content
             image_show = Image.open(BytesIO(image_bytes))
-            image_show.show()
-            return image
+            image_show.save("image.png")
+            return FileResponse("image.png")
             # return StreamingResponse(response.iter_content(chunk_size=1024),
             #                 media_type=response.headers['content-type'])
         else:
