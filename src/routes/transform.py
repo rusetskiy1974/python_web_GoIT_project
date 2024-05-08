@@ -49,30 +49,31 @@ async def create_transformed_image(body: TransformedImageRequest = Depends(),
     image = await repository_images.get_image(body.image_id, db)
     if image:
         try:
-            response = requests.get(image.path, stream=True)
-            if response.status_code == 200:
-                if body.method not in TRANSFORM_METHOD.keys():
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Method not found")
+            # response = requests.get(image.path, stream=True)
+            # if response.status_code == 200:
+            if body.method not in TRANSFORM_METHOD.keys():
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Method not found")
 
-                transformed_image = await repository_transform.transform_image(image.path,
-                                                                               transformation_options=TRANSFORM_METHOD[
-                                                                                   body.method])
-                new_name = await repository_images.format_filename()
-                r = cloudinary.uploader.upload(transformed_image, public_id=f'PhotoShareApp/{new_name}')
-                image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}')
-                image = await repository_images.create_image(size=image.size,
-                                                             image_path=image_path.url,
-                                                             title=f"{image.title} {body.method}",
-                                                             user=user,
-                                                             tag=None,
-                                                             db=db)
+            transformed_image = await repository_transform.transform_image(image.path,
+                                                                           transformation_options=TRANSFORM_METHOD[
+                                                                               body.method])
+            new_name = await repository_images.format_filename()
+            r = cloudinary.uploader.upload(transformed_image, public_id=f'PhotoShareApp/{new_name}')
+            image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}')
+            image = await repository_images.create_image(size=image.size,
+                                                         image_path=image_path.url,
+                                                         title=f"{image.title} {body.method}",
+                                                         user=user,
+                                                         tag=None,
+                                                         db=db)
 
-                qr_code = await repository_transform.generate_qr_code(transformed_image)
-                qr_code.save("qr_code.png")
-                return FileResponse("qr_code.png")
-            else:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+            qr_code = await repository_transform.generate_qr_code(transformed_image)
+            qr_code.save("qr_code.png")
+            return FileResponse("qr_code.png")
+            # else:
+            #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
         except Exception as e:
             print(e)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
