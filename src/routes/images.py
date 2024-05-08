@@ -7,7 +7,6 @@ import requests
 from PIL import Image
 
 from fastapi import UploadFile, APIRouter, HTTPException, status, Depends, File, Form, Query, Path, Response
-from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import StreamingResponse, FileResponse
 
@@ -126,8 +125,7 @@ async def get_all_images(limit: int = Query(10, ge=10, le=500), offset: int = Qu
     return images
 
 
-@router.post("/", response_model=ImageReadSchema, description='No more than 5 requests per minute',
-             dependencies=[Depends(RateLimiter(times=5, seconds=60))], status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ImageReadSchema, status_code=status.HTTP_201_CREATED)
 async def create_image(file: UploadFile = File(..., description="The image file to upload"),
                        title: str = Form(min_length=3, max_length=50),
                        tag: Optional[str] = None,
@@ -159,7 +157,7 @@ async def create_image(file: UploadFile = File(..., description="The image file 
                             detail="File is not an image. Only images are allowed")
 
     r = cloudinary.uploader.upload(file.file, public_id=f'PhotoShareApp/{new_name}', overwrite=True)
-    image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}', version=r.get('version'))
+    image_path = cloudinary.CloudinaryImage(f'PhotoShareApp/{new_name}')
     image = await repository_images.create_image(size=size_is_valid, image_path=image_path.url, title=title,
                                                  tag=tag, user=user, db=db)
     return image

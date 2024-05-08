@@ -22,8 +22,7 @@ router = APIRouter(prefix='/cloudinary_transform', tags=['cloudinary_transform']
 transform_list = list(TRANSFORM_METHOD.keys())
 
 
-@router.post('/{image_id}', description='No more than 5 requests per minute',
-             dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+@router.post('/{image_id}')
 async def create_transformed_image(body: TransformedImageRequest = Depends(),
                                    user: User = Depends(auth_service.get_current_user),
                                    db: AsyncSession = Depends(get_db)):
