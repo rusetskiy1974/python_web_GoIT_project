@@ -59,7 +59,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    asyncio.create_task(periodic_clean_blacklist(4))
+    asyncio.create_task(periodic_clean_blacklist(60))
 
 
 app.include_router(auth.router, prefix="/api")

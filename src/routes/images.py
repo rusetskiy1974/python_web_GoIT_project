@@ -193,16 +193,19 @@ async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depend
     """
     image = await repository_images.get_image(image_id, db)
     if image:
-        response = requests.get(image.path, stream=True)
-        if response.status_code == 200:
-            image_bytes = response.content
-            image_show = Image.open(BytesIO(image_bytes))
-            image_show.save("image.png")
-            return FileResponse("image.png")
-            # return StreamingResponse(response.iter_content(chunk_size=1024),
-            #                 media_type=response.headers['content-type'])
-        else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+        try:
+            response = requests.get(image.path, stream=True)
+            if response.status_code == 200:
+                image_bytes = response.content
+                image_show = Image.open(BytesIO(image_bytes))
+                image_show.save("image.png")
+                return FileResponse("image.png")
+                # return StreamingResponse(response.iter_content(chunk_size=1024),
+                #                 media_type=response.headers['content-type'])
+            else:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+        except Exception as e:
+            print(e)
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
