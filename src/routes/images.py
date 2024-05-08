@@ -1,13 +1,14 @@
+from io import BytesIO
 from typing import Optional, List
 
 import cloudinary
 import cloudinary.uploader
 import requests
+from PIL import Image
 
-from fastapi import UploadFile, APIRouter, HTTPException, status, Depends, File, Form, Query, Path
-from fastapi_limiter.depends import RateLimiter
+from fastapi import UploadFile, APIRouter, HTTPException, status, Depends, File, Form, Query, Path, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, FileResponse
 
 from src.database.db import get_db
 from src.models.models import User
@@ -18,13 +19,6 @@ from src.repository import images as repository_images
 from src.services.role import RoleAccess
 
 router = APIRouter(prefix='/images', tags=['image'])
-
-cloudinary.config(
-    cloud_name=settings.cloudinary_name,
-    api_key=settings.cloudinary_api_key,
-    api_secret=settings.cloudinary_api_secret,
-    secure=True
-)
 
 
 @router.get('/tag/{tag}', response_model=List[ImageReadSchema], status_code=status.HTTP_200_OK)
@@ -124,8 +118,7 @@ async def get_all_images(limit: int = Query(10, ge=10, le=500), offset: int = Qu
     return images
 
 
-@router.post("/", response_model=ImageReadSchema, description='No more than 5 requests per minute',
-             dependencies=[Depends(RateLimiter(times=5, seconds=60))], status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ImageReadSchema, status_code=status.HTTP_201_CREATED)
 async def create_image(file: UploadFile = File(..., description="The image file to upload"),
                        title: str = Form(min_length=3, max_length=50),
                        tag: Optional[str] = None,
@@ -146,6 +139,12 @@ async def create_image(file: UploadFile = File(..., description="The image file 
     :return: A dict with the image data
     :doc-author: RSA
     """
+    cloudinary.config(
+        cloud_name=settings.cloudinary_name,
+        api_key=settings.cloudinary_api_key,
+        api_secret=settings.cloudinary_api_secret,
+        secure=True
+    )
     new_name = await repository_images.format_filename()
     size_is_valid = await repository_images.get_file_size(file)
     file_is_valid = await repository_images.file_is_image(file)
@@ -194,12 +193,18 @@ async def download_picture(image_id: int = Path(ge=1), db: AsyncSession = Depend
     """
     image = await repository_images.get_image(image_id, db)
     if image:
-        response = requests.get(image.path, stream=True)
-        if response.status_code == 200:
-            # return image
-            return StreamingResponse(response.iter_content(chunk_size=1024),
-                                     media_type=response.headers['content-type'])
-        else:
+        try:
+            response = requests.get(image.path, stream=True)
+            if response.status_code == 200:
+                image_bytes = response.content
+                image_show = Image.open(BytesIO(image_bytes))
+                image_show.save("image.png")
+                return FileResponse("image.png")
+                # return StreamingResponse(response.iter_content(chunk_size=1024),
+                #                 media_type=response.headers['content-type'])
+            else:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+        except Exception:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
@@ -220,16 +225,22 @@ async def delete_image(image_id: int = Path(ge=1),
     :return: A dictionary with the key &quot;detail&quot; and value &quot;image successfully deleted&quot;
     :doc-author: RSA
     """
+    cloudinary.config(
+        cloud_name=settings.cloudinary_name,
+        api_key=settings.cloudinary_api_key,
+        api_secret=settings.cloudinary_api_secret,
+        secure=True
+    )
+
     image = await repository_images.get_user_image(image_id, user, db)
 
     if image:
         image_name = await repository_images.get_filename_from_cloudinary_url(image.path)
-        response = requests.get(image.path, stream=True)
-        if response.status_code == 200:
+        try:
             cloudinary.uploader.destroy(f'PhotoShareApp/{image_name}')
             await repository_images.delete_image_from_db(image, db)
             return {'ditail': 'Image successfully deleted'}
-        else:
+        except Exception:
             await repository_images.delete_image_from_db(image, db)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
     else:

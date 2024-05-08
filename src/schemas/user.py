@@ -64,3 +64,4 @@ class LogoutResponseSchema(BaseModel):
 
 class RequestNewPassword(BaseModel):
     new_password: str = Field(min_length=8, max_length=12)
+
