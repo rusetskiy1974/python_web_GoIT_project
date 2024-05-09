@@ -36,7 +36,7 @@ async def get_images(limit: int, offset: int, db: AsyncSession):
     :return: A list of image objects
     :doc-author: RSA
     """
-    query = select(Image).offset(offset).limit(limit)
+    query = select(Image).order_by(Image.average_rating.desc()).offset(offset).limit(limit)
     images = await db.execute(query)
     return images.unique().scalars().all()
 
