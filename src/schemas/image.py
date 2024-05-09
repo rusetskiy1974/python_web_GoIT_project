@@ -19,6 +19,7 @@ class ImageReadSchema(BaseModel):
     created_at: datetime
     count_tags: Optional[int] = 0
     tags: list[TagSchema]
+    average_rating: Optional[int] = 0
     owner: UserReadSchema
 
     model_config = ConfigDict(from_attributes=True)

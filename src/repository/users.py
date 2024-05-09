@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from libgravatar import Gravatar
 
 from src.database.db import get_db
-from src.models.models import User, Role, BlackList
+from src.models.models import User, Role
 from src.schemas.user import UserCreateSchema
 
 
@@ -66,7 +66,7 @@ async def get_user_by_email(email: str, db: AsyncSession = Depends(get_db)) -> U
     """
     query = select(User).filter_by(email=email)
     user = await db.execute(query)
-    return user.scalar_one_or_none()
+    return user.unique().scalar_one_or_none()
 
 
 async def update_token(user: User, token: str | None, db: AsyncSession):

@@ -33,6 +33,8 @@ class User(Base):
     is_active = Column(Boolean, default=False)
     images = relationship("Image", back_populates="owner")
     comments = relationship("Comment", back_populates="user")
+    image = relationship("Image", secondary="ratings", back_populates="users", lazy="joined")
+
 
     @hybrid_property
     def fullname(self):
@@ -52,13 +54,17 @@ class Image(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     size = Column(Integer, nullable=False, index=True)
-    path = Column(String(length=255),  index=True)
+    path = Column(String(length=255), index=True)
     created_at = Column(DateTime, default=func.now())
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     count_tags = Column(Integer, default=0, nullable=False)
+    average_rating = Column(Integer, default=0, nullable=False)
+    rating_count = Column(Integer, default=0, nullable=False)
     owner = relationship("User", back_populates="images", lazy="joined")
     tags = relationship("Tag", secondary="image_to_tag", back_populates="images", lazy="joined")
     comments = relationship("Comment", back_populates="image")
+    users = relationship("User", secondary="ratings", back_populates="image", lazy="joined")
+
 
 
 class Tag(Base):
@@ -83,11 +89,13 @@ class Comment(Base):
     image = relationship("Image", back_populates="comments")
 
 
-class BlackList(Base):
-    __tablename__ = 'black_list'
+class UserToImage(Base):
+    __tablename__ = "ratings"
 
-    id = Column(Integer, primary_key=True, index=True)
-    token = Column(String(255), unique=True, index=True)
-    email = Column(String(320), unique=True, index=True, nullable=False)
+    id: int = Column(Integer, primary_key=True, index=True)
+    image_id = Column(Integer, ForeignKey("images.id", ondelete="CASCADE", onupdate="CASCADE"))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"))
+    rating = Column(Integer)
+
 
 
