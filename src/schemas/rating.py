@@ -1,8 +1,19 @@
-from enum import IntEnum
-from typing import Literal, Union
+import uuid
 
 from fastapi import Query
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+
+from src.schemas.image import ImageReadSchema
+from src.schemas.user import UserReadSchema
+
+
+class ImageRatingReadSchema(BaseModel):
+    id: int
+    image_id: int
+    rating: int
+    user_id: uuid.UUID
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ImageRatingCreateSchema(BaseModel):

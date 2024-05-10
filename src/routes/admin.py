@@ -169,3 +169,4 @@ async def delete_comment(comment_id: int,
     """
     comment = await repository_admin.delete_comment(comment_id, db, user)
     return comment
+
