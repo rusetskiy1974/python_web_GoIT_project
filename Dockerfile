@@ -1,14 +1,14 @@
 
 FROM python:3.11
 
+WORKDIR /app
+
+COPY pyproject.toml poetry.lock /app/
 
 RUN pip install poetry
-COPY pyproject.toml poetry.lock /app/
-WORKDIR /app
+
 RUN poetry install --no-dev
 
-
-COPY . /app
-
+COPY src tests .env main.py LICENSE migration docs/app/
 
 CMD ["poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
